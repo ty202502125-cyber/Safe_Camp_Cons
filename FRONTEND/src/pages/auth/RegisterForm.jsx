@@ -3,6 +3,7 @@ import { nid } from "../../utils/appUtils.jsx";
 
 export default function RegisterForm({ d, studentColleges }) {
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   function register(event) {
     event.preventDefault();
@@ -67,7 +68,7 @@ export default function RegisterForm({ d, studentColleges }) {
           <input name="first" required />
         </label>
         <label>
-          Middle initial <span className="opt">(optional)</span>
+          Middle initial 
           <input name="mi" maxLength={2} />
         </label>
         <label>
@@ -103,11 +104,71 @@ export default function RegisterForm({ d, studentColleges }) {
         </label>
         <label>
           Password
-          <input name="pw" type="password" minLength={8} required />
+          <div style={{ position: "relative" }}>
+            <input
+              name="pw"
+              type={showPassword ? "text" : "password"}
+              minLength={8}
+              required
+              style={{ paddingRight: "44px" }}
+            />
+            <button
+              type="button"
+              className="tb"
+              onClick={() => setShowPassword((v) => !v)}
+              style={{ position: "absolute", right: "6px", top: "50%", transform: "translateY(-50%)", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center" }}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              title={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-10-8-10-8a21.77 21.77 0 0 1 5.06-6.94" />
+                  <path d="M1 1l22 22" />
+                  <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 10 8 10 8a21.8 21.8 0 0 1-4.17 5.19" />
+                  <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M1 12s3-8 11-8 11 8 11 8-3 8-11 8S1 12 1 12z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+            </button>
+          </div>
         </label>
         <label>
           Confirm password
-          <input name="pw2" type="password" minLength={8} required />
+          <div style={{ position: "relative" }}>
+            <input
+              name="pw2"
+              type={showPassword ? "text" : "password"}
+              minLength={8}
+              required
+              style={{ paddingRight: "44px" }}
+            />
+            <button
+              type="button"
+              className="tb"
+              onClick={() => setShowPassword((v) => !v)}
+              style={{ position: "absolute", right: "6px", top: "50%", transform: "translateY(-50%)", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center" }}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              title={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-10-8-10-8a21.77 21.77 0 0 1 5.06-6.94" />
+                  <path d="M1 1l22 22" />
+                  <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 10 8 10 8a21.8 21.8 0 0 1-4.17 5.19" />
+                  <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M1 12s3-8 11-8 11 8 11 8-3 8-11 8S1 12 1 12z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+            </button>
+          </div>
         </label>
         {error && <div className="err">{error}</div>}
         <button className="btn full" style={{ gridColumn: "1 / -1" }}>
