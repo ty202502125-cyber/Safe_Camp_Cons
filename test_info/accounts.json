@@ -1,0 +1,139 @@
+{
+  "createdAt": "2026-11-20",
+  "database": "Campus_connect_db",
+  "organizationsCreated": [
+    { "name": "College of Engineering", "type": "College", "status": "Active" },
+    { "name": "College of Nursing", "type": "College", "status": "Active" }
+  ],
+  "accounts": [
+    {
+      "id": 1,
+      "role": "Super Admin",
+      "first": "System",
+      "mi": "S",
+      "last": "Admin",
+      "idno": "SA-0001",
+      "email": "superadmin@wmsu.edu.ph",
+      "password": "demo1234",
+      "college": "University Administration",
+      "status": "Active",
+      "origin": "pre-existing seed account"
+    },
+    {
+      "id": 4,
+      "role": "Admin",
+      "first": "Maria",
+      "mi": "T",
+      "last": "Testing",
+      "idno": "OFF-0004",
+      "email": "eng.admin.test@wmsu.edu.ph",
+      "password": "TestAdminEng#2026",
+      "college": "College of Engineering",
+      "orgType": "College",
+      "status": "Active",
+      "origin": "created for test"
+    },
+    {
+      "id": 5,
+      "role": "Admin",
+      "first": "Juan",
+      "mi": "T",
+      "last": "Testing",
+      "idno": "OFF-0005",
+      "email": "nur.admin.test@wmsu.edu.ph",
+      "password": "TestAdminNur#2026",
+      "college": "College of Nursing",
+      "orgType": "College",
+      "status": "Active",
+      "origin": "created for test"
+    },
+    {
+      "id": 6,
+      "role": "User",
+      "first": "Ana",
+      "mi": "D",
+      "last": "Dela Cruz",
+      "idno": "TEST-ENG-001",
+      "email": "eng.student1.test@wmsu.edu.ph",
+      "password": "TestStudEng1#2026",
+      "college": "College of Engineering",
+      "status": "Active",
+      "origin": "created for test"
+    },
+    {
+      "id": 7,
+      "role": "User",
+      "first": "Ben",
+      "mi": "S",
+      "last": "Santos",
+      "idno": "TEST-ENG-002",
+      "email": "eng.student2.test@wmsu.edu.ph",
+      "password": "TestStudEng2#2026",
+      "college": "College of Engineering",
+      "status": "Active",
+      "origin": "created for test"
+    },
+    {
+      "id": 8,
+      "role": "User",
+      "first": "Cara",
+      "mi": "R",
+      "last": "Reyes",
+      "idno": "TEST-ENG-003",
+      "email": "eng.student3.test@wmsu.edu.ph",
+      "password": "TestStudEng3#2026",
+      "college": "College of Engineering",
+      "status": "Active",
+      "origin": "created for test"
+    },
+    {
+      "id": 9,
+      "role": "User",
+      "first": "Dana",
+      "mi": "L",
+      "last": "Lopez",
+      "idno": "TEST-NUR-001",
+      "email": "nur.student1.test@wmsu.edu.ph",
+      "password": "TestStudNur1#2026",
+      "college": "College of Nursing",
+      "status": "Active",
+      "origin": "created for test"
+    },
+    {
+      "id": 10,
+      "role": "User",
+      "first": "Eli",
+      "mi": "T",
+      "last": "Torres",
+      "idno": "TEST-NUR-002",
+      "email": "nur.student2.test@wmsu.edu.ph",
+      "password": "TestStudNur2#2026",
+      "college": "College of Nursing",
+      "status": "Active",
+      "origin": "created for test"
+    },
+    {
+      "id": 11,
+      "role": "User",
+      "first": "Fatima",
+      "mi": "C",
+      "last": "Cruz",
+      "idno": "TEST-NUR-003",
+      "email": "nur.student3.test@wmsu.edu.ph",
+      "password": "TestStudNur3#2026",
+      "college": "College of Nursing",
+      "status": "Active",
+      "origin": "created for test"
+    }
+  ],
+  "testActivity": {
+    "id": 1,
+    "title": "TEST FLOW - Coastal Clean-up",
+    "createdBy": 4,
+    "status": "Completed",
+    "hours": 4,
+    "colleges": ["College of Engineering", "College of Nursing"],
+    "verifiedEnrollments": [1, 2],
+    "verifiedStudentIds": [6, 9]
+  }
+}
