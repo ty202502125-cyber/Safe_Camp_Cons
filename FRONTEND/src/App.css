@@ -201,6 +201,70 @@ textarea:focus {
   color: var(--danger);
 }
 
+.org-action-menu {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.org-action-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 170px;
+}
+
+.org-action-menu .org-action-group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.org-action-menu .org-action-group + .org-action-group {
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+}
+
+.org-action-owner {
+  position: absolute;
+  top: -48px;
+  right: -8px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--soft);
+  box-shadow: 0 6px 18px rgba(68, 12, 26, 0.22);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.org-action-owner strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.org-action-menu .tb {
+  width: 100%;
+  text-align: left;
+  padding: 7px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.org-action-menu .tb:hover {
+  background: var(--soft);
+}
+
 .card {
   background: var(--card);
   border: 1px solid var(--line);

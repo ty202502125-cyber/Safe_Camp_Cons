@@ -26,6 +26,7 @@ export function SuperAdminPage({ d, start }) {
   } = d;
   const [page, setPage] = useState(start || "Overview");
   const [adminDeactivationChoice, setAdminDeactivationChoice] = useState(null);
+  const [openOrgAction, setOpenOrgAction] = useState(null);
   const admins = users.filter((u) => u.role === "Admin"),
     students = users.filter((u) => u.role === "User");
   // An organization stays assigned while its Admin is inactive; deleting that account frees it.
@@ -114,6 +115,23 @@ export function SuperAdminPage({ d, start }) {
       ),
     );
     flash("Organization status updated.");
+  }
+  function deleteOrganization(name) {
+    if (!organizations.some((org) => org.name === name)) return;
+    const orgAdmins = users.filter(
+      (u) => u.role === "Admin" && u.college === name,
+    );
+    const warning = orgAdmins.length
+      ? ` This also permanently deletes ${orgAdmins.length} Admin account${orgAdmins.length === 1 ? "" : "s"} assigned to it.`
+      : "";
+    if (!window.confirm(`Permanently delete ${name}?${warning}`)) return;
+    setOrganizations(organizations.filter((org) => org.name !== name));
+    if (orgAdmins.length)
+      setUsers(users.filter((u) => !orgAdmins.some((a) => a.id === u.id)));
+    setOpenOrgAction(null);
+    flash(
+      `${name} deleted.${orgAdmins.length ? " Assigned Admin accounts were also removed." : ""}`,
+    );
   }
   function toggle(id) {
     const account = users.find((u) => u.id === id);
@@ -213,7 +231,7 @@ export function SuperAdminPage({ d, start }) {
         <Panel
           eyebrow="ORGANIZATION DIRECTORY"
           title="Colleges and offices"
-          sub="Manage the organizations students can join and assign activity admins to. A college is available for student sign-up after it has an active Admin account."
+          sub="Manage the organizations students can join and assign activity admins to. From the Action column you can activate, deactivate, or permanently delete the Admin account assigned to an organization, or delete the organization itself. A college is available for student sign-up after it has an active Admin account."
         >
           <form className="form" onSubmit={addOrganization}>
             <label className="w">
@@ -248,31 +266,112 @@ export function SuperAdminPage({ d, start }) {
                 </tr>
               </thead>
               <tbody>
-                {organizations.map((org) => (
-                  <tr key={org.name}>
-                    <td>
-                      <strong>{org.name}</strong>
-                    </td>
-                    <td>{org.type}</td>
-                    <td>
-                      {admins.filter((u) => u.college === org.name).length}
-                    </td>
-                    <td>
-                      <Badge
-                        s={org.status === "Active" ? "Open" : "Rejected"}
-                      />
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="tb"
-                        onClick={() => toggleOrganization(org.name)}
-                      >
-                        {org.status === "Active" ? "Deactivate" : "Activate"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {organizations.map((org) => {
+                  const orgAdmins = admins.filter(
+                    (u) => u.college === org.name,
+                  );
+                  return (
+                    <tr key={org.name}>
+                      <td>
+                        <strong>{org.name}</strong>
+                      </td>
+                      <td>{org.type}</td>
+                      <td>{orgAdmins.length}</td>
+                      <td>
+                        <Badge
+                          s={org.status === "Active" ? "Open" : "Rejected"}
+                        />
+                      </td>
+                      <td>
+                        {openOrgAction === org.name ? (
+                          <div className="org-action-menu">
+                            <div className="org-action-choices">
+                              <div className="org-action-group">
+                                <button
+                                  type="button"
+                                  className="tb"
+                                  onClick={() => {
+                                    toggleOrganization(org.name);
+                                    setOpenOrgAction(null);
+                                  }}
+                                >
+                                  {org.status === "Active"
+                                    ? "Deactivate Org"
+                                    : "Activate Org"}
+                                </button>
+                              </div>
+                              {orgAdmins.map((admin) => (
+                                <div
+                                  className="org-action-group"
+                                  key={admin.id}
+                                >
+                                  <button
+                                    type="button"
+                                    className="tb"
+                                    onClick={() => {
+                                      toggle(admin.id);
+                                      setOpenOrgAction(null);
+                                    }}
+                                  >
+                                    {admin.status === "Active"
+                                      ? "Deactivate Admin"
+                                      : "Activate Admin"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="tb bad"
+                                    onClick={() => {
+                                      deleteAdmin(admin.id);
+                                      setOpenOrgAction(null);
+                                    }}
+                                  >
+                                    Delete Admin
+                                  </button>
+                                </div>
+                              ))}
+                              <div className="org-action-group">
+                                <button
+                                  type="button"
+                                  className="tb bad"
+                                  onClick={() => deleteOrganization(org.name)}
+                                >
+                                  Delete Org
+                                </button>
+                              </div>
+                              <div className="org-action-group">
+                                <button
+                                  type="button"
+                                  className="tb"
+                                  onClick={() => setOpenOrgAction(null)}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                            {orgAdmins.length > 0 && (
+                              <div className="org-action-owner">
+                                <small>Assigned Admin</small>
+                                {orgAdmins.map((admin) => (
+                                  <strong key={admin.id}>
+                                    {fullName(admin)}
+                                  </strong>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="tb"
+                            onClick={() => setOpenOrgAction(org.name)}
+                          >
+                            Actions
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {!organizations.length && (
                   <Empty
                     cols={5}
