@@ -68,8 +68,8 @@ export default function RegisterForm({ d, studentColleges }) {
           <input name="first" required />
         </label>
         <label>
-          Middle initial 
-          <input name="mi" maxLength={2} />
+          Middle initial
+          <input name="mi"  placeholder="Middle initial" />
         </label>
         <label>
           ID number
