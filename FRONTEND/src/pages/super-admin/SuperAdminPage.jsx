@@ -25,8 +25,8 @@ export function SuperAdminPage({ d, start }) {
     setOrganizations,
   } = d;
   const [page, setPage] = useState(start || "Overview");
-  const [adminDeactivationChoice, setAdminDeactivationChoice] = useState(null);
   const [openOrgAction, setOpenOrgAction] = useState(null);
+  const [openAdminAction, setOpenAdminAction] = useState(null);
   const admins = users.filter((u) => u.role === "Admin"),
     students = users.filter((u) => u.role === "User");
   // An organization stays assigned while its Admin is inactive; deleting that account frees it.
@@ -170,7 +170,8 @@ export function SuperAdminPage({ d, start }) {
     )
       return;
     setUsers(users.filter((u) => u.id !== id));
-    setAdminDeactivationChoice(null);
+    setOpenAdminAction(null);
+    setOpenOrgAction(null);
     const anotherActiveAdmin = users.some(
       (u) =>
         u.id !== id &&
@@ -485,50 +486,54 @@ export function SuperAdminPage({ d, start }) {
                       <Badge s={u.status === "Active" ? "Open" : "Rejected"} />
                     </td>
                     <td>
-                      {u.status === "Active" ? (
-                        adminDeactivationChoice === u.id ? (
-                          <>
-                            <button
-                              type="button"
-                              className="tb"
-                              onClick={() => {
-                                toggle(u.id);
-                                setAdminDeactivationChoice(null);
-                              }}
-                            >
-                              Confirm deactivate
-                            </button>
-                            <button
-                              type="button"
-                              className="tb bad"
-                              onClick={() => deleteAdmin(u.id)}
-                            >
-                              Delete instead
-                            </button>
-                            <button
-                              type="button"
-                              className="tb"
-                              onClick={() => setAdminDeactivationChoice(null)}
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            type="button"
-                            className="tb"
-                            onClick={() => setAdminDeactivationChoice(u.id)}
-                          >
-                            Deactivate
-                          </button>
-                        )
+                      {openAdminAction === u.id ? (
+                        <div className="org-action-menu">
+                          <div className="org-action-choices">
+                            <div className="org-action-group">
+                              <button
+                                type="button"
+                                className="tb"
+                                onClick={() => {
+                                  toggle(u.id);
+                                  setOpenAdminAction(null);
+                                }}
+                              >
+                                {u.status === "Active"
+                                  ? "Deactivate"
+                                  : "Activate"}
+                              </button>
+                            </div>
+                            <div className="org-action-group">
+                              <button
+                                type="button"
+                                className="tb bad"
+                                onClick={() => deleteAdmin(u.id)}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                            <div className="org-action-group">
+                              <button
+                                type="button"
+                                className="tb"
+                                onClick={() => setOpenAdminAction(null)}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                          <div className="org-action-owner">
+                            <small>Admin</small>
+                            <strong>{fullName(u)}</strong>
+                          </div>
+                        </div>
                       ) : (
                         <button
                           type="button"
                           className="tb"
-                          onClick={() => toggle(u.id)}
+                          onClick={() => setOpenAdminAction(u.id)}
                         >
-                          Activate
+                          Actions
                         </button>
                       )}
                     </td>
