@@ -2,12 +2,9 @@ import { Router } from "express";
 import pool from "../db.js";
 
 const router = Router();
-const collections = new Set([
-  "users",
-  "activities",
-  "enrollments",
-  "organizations",
-]);
+// User records are served only by the authenticated /api/users and /api/auth
+// endpoints. They must never be reachable through the generic data API.
+const collections = new Set(["activities", "enrollments", "organizations"]);
 
 router.get("/:collection", async (req, res, next) => {
   try {

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import SuperAdminHomePage, { PendingActivityTable } from "./HomePage.jsx";
 import {
-  nid,
   fullName,
   fmtDate,
   Badge,
@@ -16,7 +15,9 @@ import {
 export function SuperAdminPage({ d, start }) {
   const {
     users,
-    setUsers,
+    createUser,
+    setUserStatus,
+    removeUser,
     acts,
     setActs,
     enr,
@@ -49,7 +50,7 @@ export function SuperAdminPage({ d, start }) {
       status !== "Open",
     );
   }
-  function addAdmin(e) {
+  async function addAdmin(e) {
     e.preventDefault();
     const f = Object.fromEntries(new FormData(e.target));
     const email = f.email.trim().toLowerCase();
@@ -69,26 +70,23 @@ export function SuperAdminPage({ d, start }) {
       return flash("The initial passwords do not match.", true);
     if (users.some((u) => u.email.toLowerCase() === email))
       return flash("An account with this email already exists.", true);
-    setUsers([
-      ...users,
-      {
-        id: nid(users),
-        role: "Admin",
+    try {
+      await createUser({
+        email,
+        password: f.pw,
         last: f.last.trim(),
         first: f.first.trim(),
-        mi: f.mi.trim().replace(/\./g, ""),
-        idno: "OFF-" + String(nid(users)).padStart(4, "0"),
-        email,
+        mi: f.mi.trim(),
         college: organization.name,
         orgType: organization.type,
-        pw: f.pw,
-        status: "Active",
-      },
-    ]);
-    e.target.reset();
-    flash(
-      `Admin account created for ${organization.name}. They sign in with the WMSU email and password you set.`,
-    );
+      });
+      e.target.reset();
+      flash(
+        `Admin account created for ${organization.name}. They sign in with the WMSU email and password you set.`,
+      );
+    } catch (error) {
+      flash(error.message, true);
+    }
   }
   function addOrganization(e) {
     e.preventDefault();
@@ -116,7 +114,7 @@ export function SuperAdminPage({ d, start }) {
     );
     flash("Organization status updated.");
   }
-  function deleteOrganization(name) {
+  async function deleteOrganization(name) {
     if (!organizations.some((org) => org.name === name)) return;
     const orgAdmins = users.filter(
       (u) => u.role === "Admin" && u.college === name,
@@ -125,21 +123,27 @@ export function SuperAdminPage({ d, start }) {
       ? ` This also permanently deletes ${orgAdmins.length} Admin account${orgAdmins.length === 1 ? "" : "s"} assigned to it.`
       : "";
     if (!window.confirm(`Permanently delete ${name}?${warning}`)) return;
-    setOrganizations(organizations.filter((org) => org.name !== name));
-    if (orgAdmins.length)
-      setUsers(users.filter((u) => !orgAdmins.some((a) => a.id === u.id)));
-    setOpenOrgAction(null);
-    flash(
-      `${name} deleted.${orgAdmins.length ? " Assigned Admin accounts were also removed." : ""}`,
-    );
+    try {
+      for (const admin of orgAdmins) await removeUser(admin.id);
+      setOrganizations(organizations.filter((org) => org.name !== name));
+      setOpenOrgAction(null);
+      flash(
+        `${name} deleted.${orgAdmins.length ? " Assigned Admin accounts were also removed." : ""}`,
+      );
+    } catch (error) {
+      flash(error.message, true);
+    }
   }
-  function toggle(id) {
+  async function toggle(id) {
     const account = users.find((u) => u.id === id);
     if (!account || account.role !== "Admin") return;
     const nextStatus = account.status === "Active" ? "Inactive" : "Active";
-    setUsers(
-      users.map((u) => (u.id === id ? { ...u, status: nextStatus } : u)),
-    );
+    try {
+      await setUserStatus(id, nextStatus);
+    } catch (error) {
+      flash(error.message, true);
+      return;
+    }
     const isCollegeAdmin = organizations.some(
       (org) => org.name === account.college && org.type === "College",
     );
@@ -160,7 +164,7 @@ export function SuperAdminPage({ d, start }) {
       );
     } else flash("Account status updated.");
   }
-  function deleteAdmin(id) {
+  async function deleteAdmin(id) {
     const account = users.find((u) => u.id === id && u.role === "Admin");
     if (!account) return;
     if (
@@ -169,7 +173,12 @@ export function SuperAdminPage({ d, start }) {
       )
     )
       return;
-    setUsers(users.filter((u) => u.id !== id));
+    try {
+      await removeUser(id);
+    } catch (error) {
+      flash(error.message, true);
+      return;
+    }
     setAdminDeactivationChoice(null);
     const anotherActiveAdmin = users.some(
       (u) =>

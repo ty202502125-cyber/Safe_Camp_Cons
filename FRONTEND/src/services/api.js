@@ -1,17 +1,75 @@
+async function request(path, options = {}) {
+  const response = await fetch(path, {
+    ...options,
+    credentials: "include",
+    headers: {
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {}),
+    },
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok)
+    throw new Error(result.error || `API returned ${response.status}`);
+  return result;
+}
+
 const api = {
   async getCollection(name) {
-    const response = await fetch(`/api/data/${name}`);
-    if (!response.ok) throw new Error(`API returned ${response.status}`);
-    return (await response.json()).records;
+    return (await request(`/api/data/${name}`)).records;
   },
   async saveCollection(name, records) {
-    const response = await fetch(`/api/data/${name}`, {
+    await request(`/api/data/${name}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ records }),
     });
-    if (!response.ok) throw new Error(`API returned ${response.status}`);
   },
+};
+
+export const authApi = {
+  me: () => request("/api/auth/me"),
+  login: (email, password) =>
+    request("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+  logout: () => request("/api/auth/logout", { method: "POST" }),
+  register: (details) =>
+    request("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify(details),
+    }),
+  changePassword: (currentPassword, newPassword) =>
+    request("/api/auth/password/change", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+  requestReset: (email) =>
+    request("/api/auth/password-reset/request", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+  confirmReset: (email, code, password) =>
+    request("/api/auth/password-reset/confirm", {
+      method: "POST",
+      body: JSON.stringify({ email, code, password }),
+    }),
+};
+
+export const userApi = {
+  list: async () => (await request("/api/users")).users,
+  eligibleColleges: async () =>
+    (await request("/api/users/eligible-colleges")).colleges,
+  create: (details) =>
+    request("/api/users", {
+      method: "POST",
+      body: JSON.stringify(details),
+    }),
+  updateStatus: (id, status) =>
+    request(`/api/users/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+  remove: (id) => request(`/api/users/${id}`, { method: "DELETE" }),
 };
 
 export default api;

@@ -1,20 +1,19 @@
-import { useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import "./App.css";
 import {
   AuthScreen,
-  seedUsers,
   seedActs,
   seedEnr,
   seedOrganizations,
-  studentHasActiveCollegeAdmin,
   useStored,
 } from "./shared/appCommon.jsx";
 import SuperAdminPage from "./pages/super-admin/SuperAdminPage.jsx";
 import AdminPage from "./pages/admin/AdminPage.jsx";
 import StudentPage from "./pages/student/StudentPage.jsx";
+import { authApi, userApi } from "./services/api.js";
 
 export default function App() {
-  const [users, setUsers] = useStored("campus_serve_users", seedUsers, "users");
+  const [users, setUsers] = useState([]);
   const [activities, setActivities] = useStored(
     "campus_serve_activities",
     seedActs,
@@ -30,10 +29,9 @@ export default function App() {
     seedOrganizations,
     "organizations",
   );
-  const [currentUserId, setCurrentUserId] = useStored(
-    "campus_serve_current_user",
-    null,
-  );
+  const [me, setMe] = useState(null);
+  const [eligibleColleges, setEligibleColleges] = useState([]);
+  const [booting, setBooting] = useState(true);
   const [theme, setTheme] = useStored("campus_serve_theme", "light");
   const [notice, setNotice] = useState(null);
 
@@ -41,22 +39,95 @@ export default function App() {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
+  const refreshUsers = useCallback(async () => {
+    try {
+      setUsers(await userApi.list());
+    } catch (error) {
+      console.error("Could not load accounts:", error.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const session = await authApi.me();
+        if (active) {
+          setMe(session.user);
+          await refreshUsers();
+        }
+      } catch {
+        // No active session; the sign-in screen will be shown.
+      }
+      if (!active) return;
+      try {
+        setEligibleColleges(await userApi.eligibleColleges());
+      } catch (error) {
+        console.error("Could not load eligible colleges:", error.message);
+      }
+      if (active) setBooting(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [refreshUsers]);
+
   function showNotice(message, isError = false) {
     setNotice({ message, isError });
     window.setTimeout(() => setNotice(null), 3200);
   }
 
-  const currentUser = users.find(
-    (user) =>
-      user.id === currentUserId &&
-      user.status === "Active" &&
-      (user.role !== "User" ||
-        studentHasActiveCollegeAdmin(user, users, organizations)),
-  );
+  async function signIn(email, password) {
+    const session = await authApi.login(email, password);
+    setMe(session.user);
+    await refreshUsers();
+    return session.user;
+  }
+
+  async function register(details) {
+    const session = await authApi.register(details);
+    setMe(session.user);
+    await refreshUsers();
+    return session.user;
+  }
+
+  async function logout() {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.error("Sign out failed:", error.message);
+    }
+    setMe(null);
+    setUsers([]);
+  }
+
+  async function createUser(details) {
+    const result = await userApi.create(details);
+    await refreshUsers();
+    return result.user;
+  }
+
+  async function setUserStatus(id, status) {
+    await userApi.updateStatus(id, status);
+    await refreshUsers();
+  }
+
+  async function removeUser(id) {
+    await userApi.remove(id);
+    await refreshUsers();
+  }
 
   const appData = {
     users,
-    setUsers,
+    me,
+    login: signIn,
+    register,
+    logout,
+    changePassword: authApi.changePassword,
+    createUser,
+    setUserStatus,
+    removeUser,
+    eligibleColleges,
     acts: activities,
     setActs: setActivities,
     enr: enrollments,
@@ -64,12 +135,16 @@ export default function App() {
     organizations,
     setOrganizations,
     flash: showNotice,
-    me: currentUser,
-    setMeId: setCurrentUserId,
     theme,
     setTheme,
-    logout: () => setCurrentUserId(null),
   };
+
+  if (booting)
+    return (
+      <div className="auth">
+        <p className="sub">Loading Campus Serve…</p>
+      </div>
+    );
 
   return (
     <>
@@ -81,11 +156,11 @@ export default function App() {
           {notice.message}
         </div>
       )}
-      {!currentUser ? (
+      {!me ? (
         <AuthScreen d={appData} />
-      ) : currentUser.role === "Super Admin" ? (
+      ) : me.role === "Super Admin" ? (
         <SuperAdminPage d={appData} />
-      ) : currentUser.role === "Admin" ? (
+      ) : me.role === "Admin" ? (
         <AdminPage d={appData} />
       ) : (
         <StudentPage d={appData} />

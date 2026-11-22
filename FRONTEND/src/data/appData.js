@@ -35,23 +35,8 @@ export const COLLEGES = [
   "College of Teacher Education",
 ];
 export const seedOrganizations = [];
-export const SUPER_ADMIN_START_PASSWORD = "demo1234";
 
 /* ---------- seed data ---------- */
-export const seedUsers = [
-  {
-    id: 1,
-    role: "Super Admin",
-    last: "Admin",
-    first: "System",
-    mi: "S",
-    idno: "SA-0001",
-    email: "superadmin@wmsu.edu.ph",
-    college: "University Administration",
-    pw: SUPER_ADMIN_START_PASSWORD,
-    status: "Active",
-  },
-];
 export const seedActs = [];
 export const seedEnr = [];
 
