@@ -1,15 +1,5 @@
 import { useState } from "react";
-
-async function postAuth(path, body) {
-  const response = await fetch(`/api/auth/${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result.error || "The authentication service could not complete the request.");
-  return result;
-}
+import { authApi } from "../../services/api.js";
 
 export default function LoginForm({ d }) {
   const [error, setError] = useState("");
@@ -25,13 +15,7 @@ export default function LoginForm({ d }) {
     setBusy(true);
     const form = Object.fromEntries(new FormData(event.currentTarget));
     try {
-      const result = await postAuth("login", {
-        email: form.email.trim().toLowerCase(),
-        password: form.pw,
-      });
-      const user = d.users.find((item) => String(item.id) === String(result.userId));
-      if (!user) throw new Error("Your account data is not synchronized. Reload and try again.");
-      d.setMeId(user.id);
+      await d.login(form.email.trim().toLowerCase(), form.pw);
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -46,7 +30,7 @@ export default function LoginForm({ d }) {
     setBusy(true);
     const normalizedEmail = email.trim().toLowerCase();
     try {
-      const result = await postAuth("password-reset/request", { email: normalizedEmail });
+      const result = await authApi.requestReset(normalizedEmail);
       setEmail(normalizedEmail);
       setCodeSent(true);
       setMessage(result.message);
@@ -69,13 +53,11 @@ export default function LoginForm({ d }) {
       return;
     }
     try {
-      const result = await postAuth("password-reset/confirm", {
+      const result = await authApi.confirmReset(
         email,
-        code: form.code.trim(),
-        password: form.password,
-      });
-      const normalizedEmail = email.trim().toLowerCase();
-      d.setUsers(d.users.map((user) => user.email.toLowerCase() === normalizedEmail ? { ...user, pw: form.password } : user));
+        form.code.trim(),
+        form.password,
+      );
       setMode("login");
       setCodeSent(false);
       setMessage(result.message);

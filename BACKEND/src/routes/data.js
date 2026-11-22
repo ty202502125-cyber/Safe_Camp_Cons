@@ -1,13 +1,15 @@
 import { Router } from "express";
 import pool from "../db.js";
+import {
+  requireAuth,
+  requirePasswordChangeComplete,
+} from "../middleware/auth.js";
 
 const router = Router();
-const collections = new Set([
-  "users",
-  "activities",
-  "enrollments",
-  "organizations",
-]);
+router.use(requireAuth, requirePasswordChangeComplete);
+// User records are served only by authenticated /api/users and /api/auth
+// endpoints. The generic data API is authenticated as well.
+const collections = new Set(["activities", "enrollments", "organizations"]);
 
 router.get("/:collection", async (req, res, next) => {
   try {
@@ -52,12 +54,21 @@ router.put("/:collection", async (req, res, next) => {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
-      await client.query("DELETE FROM app_records WHERE collection = $1", [
-        collection,
+      // Serialize whole-collection writes so two tabs cannot race between
+      // removing stale records and upserting the incoming snapshot.
+      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
+        `app_records:${collection}`,
       ]);
+      await client.query(
+        "DELETE FROM app_records WHERE collection = $1 AND NOT (record_id = ANY($2::text[]))",
+        [collection, ids],
+      );
       for (let index = 0; index < records.length; index += 1) {
         await client.query(
-          "INSERT INTO app_records (collection, record_id, data, updated_at) VALUES ($1, $2, $3::jsonb, NOW())",
+          `INSERT INTO app_records (collection, record_id, data, updated_at)
+           VALUES ($1, $2, $3::jsonb, NOW())
+           ON CONFLICT (collection, record_id)
+           DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`,
           [collection, ids[index], JSON.stringify(records[index])],
         );
       }

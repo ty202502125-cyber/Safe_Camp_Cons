@@ -1,19 +1,35 @@
 # Backend API
 
-The active API is the Express server in `src/`. It stores the frontend's users, activities, enrollments, and organizations in PostgreSQL. `schema.sql` describes the table; the server creates it at startup.
+The active API is the Express server in `src/`. It stores activities, enrollments and organizations in `app_records` (JSONB) and portal accounts in the dedicated `portal_users` table.
 
 ## Start locally
 
-1. Create a PostgreSQL database (default name: `campus_connect`).
-2. Copy `.env.example` to `.env` and enter your database connection details. Keep `.env` private.
-3. From this folder, run `npm start` (or `npm run dev` when nodemon is installed).
-4. Start the frontend with `cd ../FRONTEND; npm run dev`. The Vite proxy sends `/api` requests to port 5000 by default.
+1. Create a PostgreSQL database (default name from `DB_NAME`).
+2. Create a `.env` file in this folder with the settings used below. Keep it private.
+3. From this folder, run `npm start` (or `npm run dev`). The frontend's Vite proxy sends `/api` requests to port 5000 by default.
+4. Start the frontend with `cd ../FRONTEND; npm run dev`.
 5. Check `http://localhost:5173/api/health`. It should return `database: "connected"`.
 
-When PostgreSQL is unavailable, the frontend keeps its browser cache, and database save errors appear in the browser console. Once the API is reachable, reload to sync with PostgreSQL.
+## Database schema and migrations
 
-Login is checked against the API's `users` collection. Password reset uses `POST /api/auth/password-reset/request` and `POST /api/auth/password-reset/confirm`; configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_APP_PASSWORD`, and optionally `SMTP_FROM` in `BACKEND/.env` to enable email delivery. Reset codes expire after 10 minutes and are limited to five verification attempts. With Gmail, turn on 2-Step Verification and create an App Password for the backend sender account; use that App Password for `SMTP_APP_PASSWORD`, never your regular Gmail password.
+`src/migrate.js` applies the versioned SQL files in `migrations/` at startup and records them in `schema_migrations`. Existing accounts are copied once from `app_records` into `portal_users` with hashed passwords. The older `users` table in this database belongs to an unrelated UUID-based schema and is deliberately left untouched.
 
-In pgAdmin, user records live in the `app_records` table with `collection = 'users'`. The backend also creates the read-only `app_users` view so user accounts are easy to inspect under **Schemas → public → Views**. Query it with `SELECT * FROM app_users ORDER BY updated_at DESC;`.
+Passwords are stored as bcrypt hashes only. Email and ID number are unique (case-insensitive) at the database level. The `app_users` view exposes account metadata without credential fields for inspection in pgAdmin.
 
-The current UI is a local demo and has no authenticated API session. The API binds to `127.0.0.1` for local development; add real authentication and per-user authorization before exposing it to other machines or deploying it.
+## Authentication
+
+Login creates an 8-hour httpOnly cookie session. `/api/auth/me` restores the session on page load; `/api/auth/logout` revokes it. There is no token in browser storage. Students are additionally checked for an active Admin in their college. User mutations go through authenticated, role-scoped endpoints in `/api/users`; `/api/data` is also authenticated and does not expose users.
+
+Password reset uses `POST /api/auth/password-reset/request` and `/api/auth/password-reset/confirm`. Reset codes are hashed in the database, expire after 10 minutes, and allow five verification attempts.
+
+Creating an Admin through the Super Admin console generates a random temporary password, shows it once to the Super Admin, and emails it to the new Admin. The Admin must change it at first sign-in; protected API routes remain unavailable until the change succeeds. Email delivery is best-effort: a mail failure never blocks account creation. The response returns `emailSent`, so the UI can tell the Super Admin to share the password directly; in non-production the password is also printed in the API terminal (`[DEV ADMIN PASSWORD] ...`). `POST /api/users/resend-password` with the still-displayed `{ email, password }` retries delivery without changing the stored hash (Super Admin only). Working SMTP settings are still needed for the email itself, including during local development. Set `FRONTEND_URL` to the portal URL used in the email; it defaults to `CLIENT_ORIGIN` or `http://localhost:5173`.
+
+For local password-reset testing, leave the `SMTP_*` values blank and keep `NODE_ENV=development`: the API prints the 6-digit reset code in its terminal (`[DEV PASSWORD RESET] ...`) instead of sending an email. Admin creation uses the same no-SMTP fallback in non-production but also keeps the password on screen for the Super Admin. Production requires real `SMTP_HOST`, `SMTP_USER` and `SMTP_APP_PASSWORD` (plus `SMTP_PORT`, `SMTP_SECURE` and optional `SMTP_FROM`); with Gmail, use a 2-Step Verification App Password, never the account password. Emailing a temporary password is less secure than an expiring setup link; the required first-login password change limits its lifetime but cannot protect the message while it is in the mailbox.
+
+## Security notes
+
+- Set `JWT_SECRET` (required in production) and `SUPER_ADMIN_PASSWORD` (required before the first start); never reuse a demo password.
+- TLS certificate verification is always on. Set `DB_CA_CERT` only if the database provider uses a private CA.
+- Bind to `0.0.0.0` (`HOST`) only behind a TLS-terminating reverse proxy, and set `TRUST_PROXY=1` so rate limiting sees real client IPs. Use `COOKIE_SAME_SITE=none` only when the UI and API are on different sites (cookies require HTTPS).
+- Security headers come from Helmet; rate limits apply to all `/api` traffic with a stricter limit on `/api/auth`.
+- Security-relevant actions are recorded in `portal_audit_logs`.

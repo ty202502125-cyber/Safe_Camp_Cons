@@ -3,17 +3,20 @@ import { IMG } from "../../data/appData.js";
 import { fullName, initials } from "../../utils/appUtils.jsx";
 
 export function Profile({ d }) {
-  const { me, users, setUsers, flash } = d;
-  function changePw(e) {
+  const { me, flash } = d;
+  async function changePw(e) {
     e.preventDefault();
     const p = Object.fromEntries(new FormData(e.target));
-    if (p.cur !== me.pw) return flash("Current password is incorrect.", true);
     if (p.next.length < 8)
       return flash("New password must be at least 8 characters.", true);
     if (p.next !== p.next2) return flash("New passwords do not match.", true);
-    setUsers(users.map((u) => (u.id === me.id ? { ...u, pw: p.next } : u)));
-    e.target.reset();
-    flash("Password changed.");
+    try {
+      await d.changePassword(p.cur, p.next);
+      e.target.reset();
+      flash("Password changed.");
+    } catch (error) {
+      flash(error.message, true);
+    }
   }
   return (
     <>

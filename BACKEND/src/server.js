@@ -1,35 +1,65 @@
 import "dotenv/config";
+import bcrypt from "bcryptjs";
 import app from "./app.js";
 import pool from "./db.js";
+import { runMigrations } from "./migrate.js";
 
 const PORT = process.env.PORT || 5000;
+const HOST = process.env.HOST || "127.0.0.1";
+
+async function ensureSuperAdmin() {
+  const existing = await pool.query("SELECT 1 FROM portal_users LIMIT 1");
+  if (existing.rowCount) return;
+
+  const email = (
+    process.env.SUPER_ADMIN_EMAIL || "superadmin@wmsu.edu.ph"
+  ).trim().toLowerCase();
+  const password = process.env.SUPER_ADMIN_PASSWORD;
+  if (!password)
+    throw new Error("SUPER_ADMIN_PASSWORD must be set before the first start.");
+
+  const user = {
+    id: 1,
+    role: "Super Admin",
+    last: "Admin",
+    first: "System",
+    mi: "S",
+    idno: "SA-0001",
+    email,
+    college: "University Administration",
+    passwordHash: await bcrypt.hash(password, 12),
+    sessionVersion: 0,
+    status: "Active",
+  };
+  await pool.query(
+    `INSERT INTO portal_users
+      (id, role, last, first, mi, idno, email, college, password_hash,
+       session_version, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    [
+      user.id,
+      user.role,
+      user.last,
+      user.first,
+      user.mi,
+      user.idno,
+      user.email,
+      user.college,
+      user.passwordHash,
+      user.sessionVersion,
+      user.status,
+    ],
+  );
+  console.log("Initial Super Admin account created.");
+}
 
 try {
-  await pool.query(`CREATE TABLE IF NOT EXISTS app_records (
-    collection TEXT NOT NULL CHECK (collection IN ('users', 'activities', 'enrollments', 'organizations')),
-    record_id TEXT NOT NULL,
-    data JSONB NOT NULL CHECK (jsonb_typeof(data) = 'object'),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (collection, record_id)
-  )`);
+  await runMigrations();
+  await ensureSuperAdmin();
 
-  await pool.query(`CREATE OR REPLACE VIEW app_users AS
-    SELECT record_id,
-      data->>'email' AS email,
-      data->>'role' AS role,
-      data->>'first' AS first_name,
-      data->>'last' AS last_name,
-      data->>'idno' AS id_number,
-      data->>'college' AS college,
-      data->>'status' AS status,
-      updated_at
-    FROM app_records
-    WHERE collection = 'users'`);
-
-  app.listen(PORT, "127.0.0.1", () =>
-    console.log(`API listening at http://127.0.0.1:${PORT}`),
+  app.listen(PORT, HOST, () =>
+    console.log(`API listening at http://${HOST}:${PORT}`),
   );
-
 } catch (error) {
   console.error(
     "Could not initialize PostgreSQL. Check BACKEND/.env and ensure the database exists.",

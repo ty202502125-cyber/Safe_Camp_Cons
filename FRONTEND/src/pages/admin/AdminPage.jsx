@@ -38,7 +38,8 @@ const blank = {
 export function AdminPage({ d, start }) {
   const {
     users,
-    setUsers,
+    setUserStatus,
+    removeUser,
     acts,
     setActs,
     enr,
@@ -100,21 +101,21 @@ export function AdminPage({ d, start }) {
         f.toLowerCase().includes(q.trim().toLowerCase()),
       ),
   );
-  function toggleStudent(id) {
-    setUsers(
-      users.map((user) =>
-        user.id === id && user.role === "User" && user.college === me.college
-          ? {
-              ...user,
-              status: user.status === "Active" ? "Inactive" : "Active",
-            }
-          : user,
-      ),
-    );
-    setStudentDeactivationChoice(null);
-    flash("Student account status updated.");
+  async function toggleStudent(id) {
+    const student = users.find((user) => user.id === id);
+    if (!student) return;
+    try {
+      await setUserStatus(
+        id,
+        student.status === "Active" ? "Inactive" : "Active",
+      );
+      setStudentDeactivationChoice(null);
+      flash("Student account status updated.");
+    } catch (error) {
+      flash(error.message, true);
+    }
   }
-  function deleteStudent(id) {
+  async function deleteStudent(id) {
     const student = users.find(
       (user) =>
         user.id === id && user.role === "User" && user.college === me.college,
@@ -126,10 +127,14 @@ export function AdminPage({ d, start }) {
       )
     )
       return;
-    setUsers(users.filter((user) => user.id !== id));
-    setEnr(enr.filter((enrollment) => enrollment.userId !== id));
-    setStudentDeactivationChoice(null);
-    flash("Student account and enrollment records permanently deleted.");
+    try {
+      await removeUser(id);
+      setEnr(enr.filter((enrollment) => enrollment.userId !== id));
+      setStudentDeactivationChoice(null);
+      flash("Student account and enrollment records permanently deleted.");
+    } catch (error) {
+      flash(error.message, true);
+    }
   }
   const setF = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   const toggleCollege = (college) =>

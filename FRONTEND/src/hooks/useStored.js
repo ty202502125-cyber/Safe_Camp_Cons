@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import api from "../services/api.js";
 
-export function useStored(key, initial, collection = null) {
+export function useStored(key, initial, collection = null, enabled = true) {
   const [value, setValue] = useState(() => {
     try {
       const v = localStorage.getItem(key);
@@ -12,6 +12,7 @@ export function useStored(key, initial, collection = null) {
   });
   const valueRef = useRef(value);
   const changedBeforeLoad = useRef(false);
+  const loadingRef = useRef(false);
   useEffect(() => {
     const syncFromOtherTab = (event) => {
       if (event.key !== key) return;
@@ -29,7 +30,9 @@ export function useStored(key, initial, collection = null) {
   const [databaseReady, setDatabaseReady] = useState(!collection);
   useEffect(() => {
     if (!collection) return undefined;
+    if (!enabled) return undefined;
     let active = true;
+    loadingRef.current = true;
     api
       .getCollection(collection)
       .then((records) => {
@@ -45,10 +48,9 @@ export function useStored(key, initial, collection = null) {
             /* local cache is optional */
           }
         } else {
-          // PostgreSQL is authoritative when a collection is empty. Only use
-          // the seed user to initialize a brand-new database; do not restore
-          // deleted activities or enrollments from an old browser cache.
-          const initialRecords = collection === "users" ? initial : [];
+          // PostgreSQL is authoritative when a collection is empty; do not
+          // restore deleted activities or enrollments from an old browser cache.
+          const initialRecords = [];
           valueRef.current = initialRecords;
           setValue(initialRecords);
           try {
@@ -66,14 +68,17 @@ export function useStored(key, initial, collection = null) {
         ),
       )
       .finally(() => {
-        if (active) setDatabaseReady(true);
+        if (active) {
+          loadingRef.current = false;
+          setDatabaseReady(true);
+        }
       });
     return () => {
       active = false;
     };
-  }, [collection, initial, key]);
+  }, [collection, enabled, initial, key]);
   useEffect(() => {
-    if (!collection || !databaseReady) return;
+    if (!collection || !enabled || loadingRef.current || !databaseReady) return;
     const timer = window.setTimeout(() => {
       api
         .saveCollection(collection, value)
@@ -85,7 +90,7 @@ export function useStored(key, initial, collection = null) {
         );
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [collection, databaseReady, value]);
+  }, [collection, databaseReady, enabled, value]);
   const set = (next) => {
     if (collection && !databaseReady) changedBeforeLoad.current = true;
     valueRef.current = next;

@@ -1,15 +1,12 @@
 import { useState } from "react";
 import { IMG } from "../../data/appData.js";
 import { Logo, ThemeToggle } from "../../components/common/SharedUi.jsx";
-import { collegeHasActiveAdmin } from "../../utils/appUtils.jsx";
 import LoginForm from "./LoginForm.jsx";
 import RegisterForm from "./RegisterForm.jsx";
 
 export function AuthScreen({ d }) {
   const [view, setView] = useState("login");
-  const studentColleges = d.organizations
-    .filter((org) => collegeHasActiveAdmin(org.name, d.users, d.organizations))
-    .map((org) => org.name);
+  const studentColleges = d.eligibleColleges;
 
   return (
     <div className="auth">
@@ -85,5 +82,3 @@ export function AuthScreen({ d }) {
     </div>
   );
 }
-
-export default AuthScreen;

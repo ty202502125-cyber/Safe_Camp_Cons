@@ -1,0 +1,12 @@
+# Credential/test artifacts must never be committed.
+test_info/accounts.json
+test_info/credentials.csv
+
+# Local environment files.
+.env
+**/.env
+!**/.env.example
+
+# Dependencies and build output.
+node_modules/
+dist/

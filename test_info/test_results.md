@@ -42,7 +42,7 @@ No unhandled 500 errors, crashes, or database errors occurred during any API cal
 
 1. **No server-side authorization.** `PUT /api/data/:collection` accepts unauthenticated writes and replaces an entire collection. I added a temporary organization with no credentials and read it back successfully. Any client can therefore create Admin/Super Admin users, change roles, passwords, statuses, or wipe records.
    - Location: `BACKEND/src/routes/data.js` lines 26–75.
-2. **Plaintext passwords are stored and exposed.** `GET /api/data/users` returns the `pw` field (e.g. `"pw":"demo1234"`). `POST /api/auth/login` compares the submitted password directly to that field.
+2. **Plaintext passwords are stored and exposed.** `GET /api/data/users` returns the `pw` field. `POST /api/auth/login` compares the submitted password directly to that field.
    - Location: `BACKEND/src/routes/auth.js` line 27, `app_records.data` in PostgreSQL.
 3. **No real session or token.** Login only returns `{userId, role}`; the frontend stores the current user in `localStorage["campus_serve_current_user"]` and trusts it for routing. Editing that value in DevTools gives any role without a password.
    - Locations: `FRONTEND/src/pages/auth/LoginForm.jsx` lines 28–34, `FRONTEND/src/App.jsx` lines 33–55.
@@ -55,7 +55,7 @@ No unhandled 500 errors, crashes, or database errors occurred during any API cal
    - Location: `FRONTEND/src/hooks/useStored.js` lines 75–88, `BACKEND/src/routes/data.js`.
 6. **Password reset is unusable.** `SMTP_USER`, `SMTP_APP_PASSWORD`, and `SMTP_FROM` are blank in `BACKEND/.env`, so `/api/auth/password-reset/request` returns `503`. Reset codes are kept in an in-memory `Map`, so a backend restart loses pending codes and resets the one-minute cooldown.
    - Location: `BACKEND/src/routes/auth.js` lines 7, 42–46, 75–80.
-7. **Predictable super-admin password.** `SUPER_ADMIN_START_PASSWORD = "demo1234"` is hardcoded in the frontend seed and is the current production-like credential.
+7. **Predictable super-admin password.** `SUPER_ADMIN_START_PASSWORD` was hardcoded in the frontend seed and was the current production-like credential.
    - Location: `FRONTEND/src/data/appData.js` lines 38–53.
 
 ### Medium
@@ -95,7 +95,7 @@ No unhandled 500 errors, crashes, or database errors occurred during any API cal
 ## 5. Suggestions
 
 1. **Move trust to the backend.** Add JWT/session auth with httpOnly cookies, enforce role and ownership on every endpoint, and stop using `localStorage` as the source of authority for the current role.
-2. **Hash passwords server-side** with bcrypt/argon2, never return `pw` from any endpoint, and rotate the hardcoded `demo1234` super-admin password. The `app_users` view already omits `pw`; keep it that way.
+2. **Hash passwords server-side** with bcrypt/argon2, never return `pw` from any endpoint, and rotate the hardcoded super-admin password. The `app_users` view already omits `pw`; keep it that way.
 3. **Replace whole-collection `PUT`** with granular `POST /users`, `PATCH /users/:id`, `DELETE /users/:id` (and equivalents for other collections), plus optimistic concurrency via `updated_at`/version so concurrent edits cannot silently overwrite.
 4. **Enforce business rules in the API:** one Admin per active organization, WMSU email regex, unique email/ID number, student college activity gate, slot limits, attendance date/hour bounds, and certificate conditions. The UI checks are good UX but must be repeated server-side.
 5. **Persist password-reset codes** in the database with expiry/attempts, configure SMTP in `BACKEND/.env`, and add rate limiting by email + IP.

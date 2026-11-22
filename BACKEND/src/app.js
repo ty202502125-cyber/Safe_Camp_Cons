@@ -1,10 +1,20 @@
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import pool from "./db.js";
 import dataRouter from "./routes/data.js";
 import authRouter from "./routes/auth.js";
+import usersRouter from "./routes/users.js";
 
 const app = express();
+
+if (process.env.TRUST_PROXY)
+  app.set("trust proxy", Number(process.env.TRUST_PROXY) || 1);
+
+app.disable("x-powered-by");
+app.use(helmet());
 
 // Configure CORS to allow requests from the React frontend.
 app.use(
@@ -12,12 +22,33 @@ app.use(
     origin: (process.env.CLIENT_ORIGIN || "http://localhost:5173")
       .split(",")
       .map((origin) => origin.trim()),
+    credentials: true,
   }),
 );
 
 // Middleware to parse incoming JSON requests.
 app.use(express.json({ limit: "25mb" }));
+app.use(cookieParser());
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+});
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  skipSuccessfulRequests: true,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many attempts. Please try again later." },
+});
+app.use("/api", apiLimiter);
+app.use("/api/auth", authLimiter);
+
 app.use("/api/auth", authRouter);
+app.use("/api/users", usersRouter);
 
 app.get("/api/health", async (_req, res) => {
   try {
