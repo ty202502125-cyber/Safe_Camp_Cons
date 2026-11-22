@@ -16,6 +16,7 @@ export function SuperAdminPage({ d, start }) {
   const {
     users,
     createUser,
+    resendAdminPassword,
     setUserStatus,
     removeUser,
     acts,
@@ -28,6 +29,11 @@ export function SuperAdminPage({ d, start }) {
   const [page, setPage] = useState(start || "Overview");
   const [adminDeactivationChoice, setAdminDeactivationChoice] = useState(null);
   const [openOrgAction, setOpenOrgAction] = useState(null);
+  const [creatingAdmin, setCreatingAdmin] = useState(false);
+  const [temporaryPassword, setTemporaryPassword] = useState("");
+  const [showTemporaryPassword, setShowTemporaryPassword] = useState(false);
+  const [createdAdmin, setCreatedAdmin] = useState(null);
+  const [resendingEmail, setResendingEmail] = useState(false);
   const admins = users.filter((u) => u.role === "Admin"),
     students = users.filter((u) => u.role === "User");
   // An organization stays assigned while its Admin is inactive; deleting that account frees it.
@@ -50,6 +56,20 @@ export function SuperAdminPage({ d, start }) {
       status !== "Open",
     );
   }
+  function generateTemporaryPassword() {
+    const alphabet =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    try {
+      const randomBytes = new Uint8Array(32);
+      window.crypto.getRandomValues(randomBytes);
+      setTemporaryPassword(
+        Array.from(randomBytes, (byte) => alphabet[byte & 63]).join(""),
+      );
+      setShowTemporaryPassword(false);
+    } catch {
+      flash("Secure password generation is unavailable in this browser.", true);
+    }
+  }
   async function addAdmin(e) {
     e.preventDefault();
     const f = Object.fromEntries(new FormData(e.target));
@@ -66,26 +86,63 @@ export function SuperAdminPage({ d, start }) {
       return flash(`${organization.name} already has an Admin account.`, true);
     if (!/^[^\s@]+@wmsu\.edu\.ph$/.test(email))
       return flash("Use a WMSU email (name@wmsu.edu.ph).", true);
-    if (f.pw !== f.pw2)
-      return flash("The initial passwords do not match.", true);
     if (users.some((u) => u.email.toLowerCase() === email))
       return flash("An account with this email already exists.", true);
+    if (!temporaryPassword)
+      return flash("Generate a temporary password before creating the account.", true);
+    setCreatingAdmin(true);
     try {
-      await createUser({
+      const result = await createUser({
         email,
-        password: f.pw,
+        password: temporaryPassword,
         last: f.last.trim(),
         first: f.first.trim(),
         mi: f.mi.trim(),
         college: organization.name,
-        orgType: organization.type,
       });
       e.target.reset();
-      flash(
-        `Admin account created for ${organization.name}. They sign in with the WMSU email and password you set.`,
-      );
+      // Keep the one generated copy on screen. Email can be delayed, filtered
+      // or misconfigured, so the Super Admin must always be able to hand it over.
+      setCreatedAdmin({
+        email,
+        password: temporaryPassword,
+        emailed: result.emailSent !== false,
+      });
+      setTemporaryPassword("");
+      setShowTemporaryPassword(false);
+      if (result.emailSent !== false)
+        flash(
+          `Admin account created for ${organization.name}. The temporary password was emailed to ${email}; if it is not in the inbox, check Spam or copy it below.`,
+        );
+      else
+        flash(
+          `Account created, but the email could not be delivered. Copy the password below and give it to the Admin directly.`,
+          true,
+        );
     } catch (error) {
       flash(error.message, true);
+    } finally {
+      setCreatingAdmin(false);
+    }
+  }
+  async function copyCreatedPassword() {
+    try {
+      await navigator.clipboard.writeText(createdAdmin.password);
+      flash("Temporary password copied. Share it securely.");
+    } catch {
+      flash("Copy failed. Select the password and copy it manually.", true);
+    }
+  }
+  async function resendCreatedPassword() {
+    setResendingEmail(true);
+    try {
+      await resendAdminPassword(createdAdmin.email, createdAdmin.password);
+      setCreatedAdmin((current) => ({ ...current, emailed: true }));
+      flash(`Password emailed again to ${createdAdmin.email}. Check the inbox and Spam folder.`);
+    } catch (error) {
+      flash(error.message, true);
+    } finally {
+      setResendingEmail(false);
     }
   }
   function addOrganization(e) {
@@ -396,7 +453,7 @@ export function SuperAdminPage({ d, start }) {
         <Panel
           eyebrow="SUPER ADMIN CONSOLE"
           title="Admin accounts"
-          sub="Each college or office can have one Admin account. Deactivating suspends access but keeps the organization assigned; deleting the account makes it available again. Students in a college can sign in only while that college has an active Admin."
+          sub="Each college or office can have one Admin account. A random temporary password is shown here once and emailed to the Admin, who must change it at first sign-in. Deactivating suspends access but keeps the organization assigned; deleting the account makes it available again."
         >
           <form className="form" onSubmit={addAdmin}>
             <label>
@@ -446,30 +503,98 @@ export function SuperAdminPage({ d, start }) {
                 placeholder="office@wmsu.edu.ph"
               />
             </label>
-            <label>
-              Initial password
-              <input
-                name="pw"
-                type="password"
-                minLength={8}
-                required
-                autoComplete="new-password"
-              />
+            <p className="sub w">
+              Generate a strong temporary password, then send it to the Admin’s
+              email. They must change it at first sign-in.
+            </p>
+            <label className="w">
+              Temporary password
+              <div className="row" style={{ gap: 8 }}>
+                <input
+                  type={showTemporaryPassword ? "text" : "password"}
+                  value={temporaryPassword}
+                  readOnly
+                  placeholder="Generate a password first"
+                  autoComplete="new-password"
+                />
+                <button
+                  className="tb"
+                  type="button"
+                  onClick={generateTemporaryPassword}
+                  disabled={creatingAdmin}
+                >
+                  Generate
+                </button>
+                {temporaryPassword && (
+                  <button
+                    className="tb"
+                    type="button"
+                    onClick={() =>
+                      setShowTemporaryPassword((visible) => !visible)
+                    }
+                    disabled={creatingAdmin}
+                  >
+                    {showTemporaryPassword ? "Hide" : "Show"}
+                  </button>
+                )}
+              </div>
             </label>
-            <label>
-              Confirm initial password
-              <input
-                name="pw2"
-                type="password"
-                minLength={8}
-                required
-                autoComplete="new-password"
-              />
-            </label>
-            <button className="btn sm" type="submit">
-              Create Admin
+            <button
+              className="btn sm"
+              type="submit"
+              disabled={creatingAdmin || !temporaryPassword}
+            >
+              {creatingAdmin ? "Creating…" : "Create Admin"}
             </button>
           </form>
+          {createdAdmin && (
+            <div className="card w" style={{ marginTop: 16 }}>
+              <strong>
+                One-time temporary password for {createdAdmin.email}
+              </strong>
+              <p className="sub">
+                {createdAdmin.emailed
+                  ? "This was also emailed to the Admin. If it is not in the inbox, check Spam or use Resend email."
+                  : "Email delivery failed. Use Resend email, or copy this password and give it to the Admin another way."}
+                {" "}They must change it at first sign-in.
+              </p>
+              <div className="row" style={{ gap: 8, alignItems: "center" }}>
+                <code
+                  style={{
+                    flex: 1,
+                    padding: "8px 10px",
+                    wordBreak: "break-all",
+                    background: "var(--soft, #f4f4f5)",
+                    borderRadius: 6,
+                  }}
+                >
+                  {createdAdmin.password}
+                </code>
+                <button
+                  className="tb"
+                  type="button"
+                  onClick={copyCreatedPassword}
+                >
+                  Copy
+                </button>
+                <button
+                  className="tb"
+                  type="button"
+                  onClick={resendCreatedPassword}
+                  disabled={resendingEmail}
+                >
+                  {resendingEmail ? "Sending…" : "Resend email"}
+                </button>
+                <button
+                  className="tb"
+                  type="button"
+                  onClick={() => setCreatedAdmin(null)}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
           <div className="tw">
             <table>
               <thead>

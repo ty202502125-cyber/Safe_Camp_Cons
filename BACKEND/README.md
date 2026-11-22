@@ -5,7 +5,7 @@ The active API is the Express server in `src/`. It stores activities, enrollment
 ## Start locally
 
 1. Create a PostgreSQL database (default name from `DB_NAME`).
-2. Copy `.env.example` to `.env` and enter real values. Keep `.env` private.
+2. Create a `.env` file in this folder with the settings used below. Keep it private.
 3. From this folder, run `npm start` (or `npm run dev`). The frontend's Vite proxy sends `/api` requests to port 5000 by default.
 4. Start the frontend with `cd ../FRONTEND; npm run dev`.
 5. Check `http://localhost:5173/api/health`. It should return `database: "connected"`.
@@ -18,11 +18,13 @@ Passwords are stored as bcrypt hashes only. Email and ID number are unique (case
 
 ## Authentication
 
-Login creates an 8-hour httpOnly cookie session. `/api/auth/me` restores the session on page load; `/api/auth/logout` revokes it. There is no token in browser storage. Students are additionally checked for an active Admin in their college. All mutations go through authenticated, role-scoped endpoints in `/api/users`; the generic `/api/data` API no longer exposes users.
+Login creates an 8-hour httpOnly cookie session. `/api/auth/me` restores the session on page load; `/api/auth/logout` revokes it. There is no token in browser storage. Students are additionally checked for an active Admin in their college. User mutations go through authenticated, role-scoped endpoints in `/api/users`; `/api/data` is also authenticated and does not expose users.
 
 Password reset uses `POST /api/auth/password-reset/request` and `/api/auth/password-reset/confirm`. Reset codes are hashed in the database, expire after 10 minutes, and allow five verification attempts.
 
-For local testing, leave the `SMTP_*` values blank and keep `NODE_ENV=development`: the API prints the 6-digit code in its terminal (`[DEV PASSWORD RESET] ...`) instead of sending an email. Production always requires real `SMTP_HOST`, `SMTP_USER` and `SMTP_APP_PASSWORD` (plus `SMTP_PORT`, `SMTP_SECURE` and optional `SMTP_FROM`); with Gmail, use a 2-Step Verification App Password, never the account password.
+Creating an Admin through the Super Admin console generates a random temporary password, shows it once to the Super Admin, and emails it to the new Admin. The Admin must change it at first sign-in; protected API routes remain unavailable until the change succeeds. Email delivery is best-effort: a mail failure never blocks account creation. The response returns `emailSent`, so the UI can tell the Super Admin to share the password directly; in non-production the password is also printed in the API terminal (`[DEV ADMIN PASSWORD] ...`). `POST /api/users/resend-password` with the still-displayed `{ email, password }` retries delivery without changing the stored hash (Super Admin only). Working SMTP settings are still needed for the email itself, including during local development. Set `FRONTEND_URL` to the portal URL used in the email; it defaults to `CLIENT_ORIGIN` or `http://localhost:5173`.
+
+For local password-reset testing, leave the `SMTP_*` values blank and keep `NODE_ENV=development`: the API prints the 6-digit reset code in its terminal (`[DEV PASSWORD RESET] ...`) instead of sending an email. Admin creation uses the same no-SMTP fallback in non-production but also keeps the password on screen for the Super Admin. Production requires real `SMTP_HOST`, `SMTP_USER` and `SMTP_APP_PASSWORD` (plus `SMTP_PORT`, `SMTP_SECURE` and optional `SMTP_FROM`); with Gmail, use a 2-Step Verification App Password, never the account password. Emailing a temporary password is less secure than an expiring setup link; the required first-login password change limits its lifetime but cannot protect the message while it is in the mailbox.
 
 ## Security notes
 

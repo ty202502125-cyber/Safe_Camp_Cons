@@ -98,5 +98,3 @@ export const collegeHasActiveAdmin = (college, users, organizations) =>
       user.status === "Active" &&
       user.college === college,
   );
-export const studentHasActiveCollegeAdmin = (student, users, organizations) =>
-  collegeHasActiveAdmin(student.college, users, organizations);

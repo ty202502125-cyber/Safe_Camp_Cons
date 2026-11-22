@@ -23,6 +23,7 @@ export function rowToUser(row) {
     ...(row.org_type ? { orgType: row.org_type } : {}),
     passwordHash: row.password_hash,
     sessionVersion: row.session_version,
+    mustChangePassword: row.must_change_password === true,
     status: row.status,
   };
 }

@@ -1,7 +1,13 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import pool from "../db.js";
-import { validate, adminCreateSchema, statusSchema } from "../validation.js";
+import { sendEmail } from "../mailer.js";
+import {
+  validate,
+  adminCreateSchema,
+  resendPasswordSchema,
+  statusSchema,
+} from "../validation.js";
 import {
   findUserById,
   listUsers,
@@ -10,6 +16,7 @@ import {
   nextUserId,
   publicUser,
   requireAuth,
+  requirePasswordChangeComplete,
   requireRole,
   saveUser,
   studentCanSignIn,
@@ -18,6 +25,18 @@ import {
 const router = Router();
 const validText = (value, max = 254) =>
   typeof value === "string" && value.trim().length > 0 && value.trim().length <= max;
+
+function adminPasswordEmail(user, password) {
+  const appUrl =
+    process.env.FRONTEND_URL ||
+    process.env.CLIENT_ORIGIN?.split(",")[0]?.trim() ||
+    "http://localhost:5173";
+  return {
+    to: user.email,
+    subject: "Your Campus Serve Admin account",
+    text: `Hello ${user.first},\n\nA Campus Serve Admin account has been created for ${user.college}.\n\nSign in at ${appUrl} with this email address and temporary password:\n\nEmail: ${user.email}\nTemporary password: ${password}\n\nYou will be required to change this password before using the portal. Do not share this email or password.\n`,
+  };
+}
 
 // Public information needed by the sign-up form; does not expose user records.
 router.get("/eligible-colleges", async (_req, res, next) => {
@@ -39,7 +58,7 @@ router.get("/eligible-colleges", async (_req, res, next) => {
   }
 });
 
-router.get("/", requireAuth, async (_req, res, next) => {
+router.get("/", requireAuth, requirePasswordChangeComplete, async (_req, res, next) => {
   try {
     res.json({ users: (await listUsers()).map(publicUser) });
   } catch (error) {
@@ -47,16 +66,14 @@ router.get("/", requireAuth, async (_req, res, next) => {
   }
 });
 
-router.post("/", requireAuth, requireRole("Super Admin"), validate(adminCreateSchema), async (req, res, next) => {
+router.post("/", requireAuth, requirePasswordChangeComplete, requireRole("Super Admin"), validate(adminCreateSchema), async (req, res, next) => {
   try {
-    const { email, password, last, first, mi, college, orgType } = req.body || {};
+    const { email, password, last, first, mi, college } = req.body || {};
     if (
       !validText(email) ||
       !/^[^\s@]+@wmsu\.edu\.ph$/i.test(email.trim()) ||
       !validText(last, 100) ||
       !validText(first, 100) ||
-      typeof password !== "string" ||
-      password.length < 8 ||
       !validText(college, 200)
     )
       return res.status(400).json({ error: "Complete every required field with a valid value." });
@@ -67,6 +84,11 @@ router.post("/", requireAuth, requireRole("Super Admin"), validate(adminCreateSc
       return res.status(409).json({ error: "An account with this email already exists." });
     if (users.some((user) => user.role === "Admin" && user.college === college))
       return res.status(409).json({ error: `${college} already has an Admin account.` });
+    const organization = (await loadOrganizationsForSignIn()).find(
+      (item) => item.name === college && item.status === "Active",
+    );
+    if (!organization)
+      return res.status(400).json({ error: "Choose an active college or office." });
 
     const id = await nextUserId();
     const user = {
@@ -78,16 +100,17 @@ router.post("/", requireAuth, requireRole("Super Admin"), validate(adminCreateSc
       idno: "OFF-" + String(id).padStart(4, "0"),
       email: normalizedEmail,
       college,
-      orgType,
+      orgType: organization.type,
       passwordHash: await bcrypt.hash(password, 12),
       sessionVersion: 0,
+      mustChangePassword: true,
       status: "Active",
     };
     await pool.query(
       `INSERT INTO portal_users
         (id, role, last, first, mi, idno, email, college, org_type,
-         password_hash, session_version, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+         password_hash, session_version, status, must_change_password)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
       [
         user.id,
         user.role,
@@ -101,16 +124,57 @@ router.post("/", requireAuth, requireRole("Super Admin"), validate(adminCreateSc
         user.passwordHash,
         user.sessionVersion,
         user.status,
+        user.mustChangePassword,
       ],
     );
+
+    // Delivery is best-effort. The Super Admin keeps the generated password on
+    // screen and can hand it over directly when the message never arrives, so
+    // a mail outage must not prevent the account from being created.
+    let emailSent = false;
+    try {
+      await sendEmail(adminPasswordEmail(user, password));
+      emailSent = true;
+    } catch (error) {
+      console.error("Admin account email delivery failed:", error.message);
+      if (process.env.NODE_ENV !== "production")
+        console.warn(`[DEV ADMIN PASSWORD] ${normalizedEmail}: ${password}`);
+    }
+
     await logAudit(req, "user_create", user.id);
-    res.status(201).json({ user: publicUser(user) });
+    res.status(201).json({ user: publicUser(user), emailSent });
   } catch (error) {
     next(error);
   }
 });
 
-router.patch("/:id", requireAuth, requireRole("Admin", "Super Admin"), validate(statusSchema), async (req, res, next) => {
+// Retry delivery for the one-time password still shown to the Super Admin.
+// Nothing is stored here: the account keeps only the bcrypt hash of the password.
+router.post(
+  "/resend-password",
+  requireAuth,
+  requirePasswordChangeComplete,
+  requireRole("Super Admin"),
+  validate(resendPasswordSchema),
+  async (req, res, next) => {
+    try {
+      const { email, password } = req.body;
+      const user = (await listUsers()).find(
+        (item) => item.role === "Admin" && item.email === email,
+      );
+      if (!user || !user.mustChangePassword)
+        return res.status(404).json({ error: "Admin account not found." });
+      await sendEmail(adminPasswordEmail(user, password));
+      await logAudit(req, "admin_password_email_resend", user.id);
+      res.json({ emailSent: true });
+    } catch (error) {
+      console.error("Resend Admin password email failed:", error.message);
+      res.status(502).json({ error: "Email delivery failed. Check SMTP settings and try again." });
+    }
+  },
+);
+
+router.patch("/:id", requireAuth, requirePasswordChangeComplete, requireRole("Admin", "Super Admin"), validate(statusSchema), async (req, res, next) => {
   try {
     const record = await findUserById(req.params.id);
     const target = record;
@@ -135,7 +199,7 @@ router.patch("/:id", requireAuth, requireRole("Admin", "Super Admin"), validate(
   }
 });
 
-router.delete("/:id", requireAuth, requireRole("Admin", "Super Admin"), async (req, res, next) => {
+router.delete("/:id", requireAuth, requirePasswordChangeComplete, requireRole("Admin", "Super Admin"), async (req, res, next) => {
   try {
     const record = await findUserById(req.params.id);
     const target = record;
@@ -170,7 +234,7 @@ router.delete("/:id", requireAuth, requireRole("Admin", "Super Admin"), async (r
 });
 
 // Guard against a student losing portal access when their last college Admin is removed.
-router.get("/access-check/:id", requireAuth, requireRole("Admin", "Super Admin"), async (req, res, next) => {
+router.get("/access-check/:id", requireAuth, requirePasswordChangeComplete, requireRole("Admin", "Super Admin"), async (req, res, next) => {
   try {
     const record = await findUserById(req.params.id);
     if (!record) return res.status(404).json({ error: "Account not found." });

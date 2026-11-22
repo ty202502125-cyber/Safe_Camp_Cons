@@ -82,5 +82,3 @@ export function AuthScreen({ d }) {
     </div>
   );
 }
-
-export default AuthScreen;

@@ -1,6 +1,6 @@
 export const LOGO =
   "https://upload.wikimedia.org/wikipedia/en/b/b7/Western_Mindanao_State_University.png";
-export const U = (id) =>
+const U = (id) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=900&q=80`;
 export const IMG = {
   campus: U("photo-1523580494863-6f3031224c94"),

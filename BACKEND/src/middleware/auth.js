@@ -73,7 +73,8 @@ export async function saveUser(record) {
   await pool.query(
     `UPDATE portal_users SET role = $2, last = $3, first = $4, mi = $5, idno = $6,
        email = $7, college = $8, org_type = $9, password_hash = $10,
-       session_version = $11, status = $12, updated_at = NOW()
+       session_version = $11, status = $12, must_change_password = $13,
+       updated_at = NOW()
      WHERE id = $1`,
     [
       record.id,
@@ -88,6 +89,7 @@ export async function saveUser(record) {
       record.passwordHash,
       Number(record.sessionVersion || 0),
       record.status,
+      record.mustChangePassword === true,
     ],
   );
 }
@@ -175,4 +177,12 @@ export function requireRole(...roles) {
       return res.status(403).json({ error: "You do not have permission to do that." });
     next();
   };
+}
+
+export function requirePasswordChangeComplete(req, res, next) {
+  if (req.user?.mustChangePassword)
+    return res.status(403).json({
+      error: "Change your temporary password before continuing.",
+    });
+  next();
 }

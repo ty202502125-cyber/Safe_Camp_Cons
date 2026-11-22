@@ -1,8 +1,8 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { createHash, randomInt, timingSafeEqual } from "node:crypto";
-import nodemailer from "nodemailer";
 import pool from "../db.js";
+import { isSmtpConfigured, sendEmail } from "../mailer.js";
 import {
   validate,
   loginSchema,
@@ -161,6 +161,7 @@ router.post("/password/change", requireAuth, validate(changePasswordSchema), asy
       ...req.user,
       passwordHash: await bcrypt.hash(newPassword, 12),
       sessionVersion: Number(req.user.sessionVersion || 0) + 1,
+      mustChangePassword: false,
     };
     await saveUser(updated);
     await logAudit(req, "password_change", req.user.id);
@@ -188,11 +189,7 @@ router.post("/password-reset/request", validate(resetRequestSchema), async (req,
       return res.status(429).json({ error: "Please wait one minute before requesting another code." });
 
     const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
-    const smtpConfigured = !!(
-      process.env.SMTP_HOST &&
-      process.env.SMTP_USER &&
-      process.env.SMTP_APP_PASSWORD
-    );
+    const smtpConfigured = isSmtpConfigured();
 
     if (!smtpConfigured) {
       if (process.env.NODE_ENV === "production")
@@ -203,24 +200,8 @@ router.post("/password-reset/request", validate(resetRequestSchema), async (req,
         `[DEV PASSWORD RESET] Code for ${normalizedEmail}: ${code} (expires in 10 minutes)`,
       );
     } else {
-      const port = Number(process.env.SMTP_PORT || 465);
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port,
-        secure: process.env.SMTP_SECURE
-          ? process.env.SMTP_SECURE.toLowerCase() === "true"
-          : port === 465,
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_APP_PASSWORD.replace(/\s+/g, ""),
-        },
-        connectionTimeout: 10_000,
-        greetingTimeout: 10_000,
-        socketTimeout: 15_000,
-      });
       try {
-        await transporter.sendMail({
-          from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        await sendEmail({
           to: normalizedEmail,
           subject: "Campus Serve password reset code",
           text: `Your Campus Serve password reset code is ${code}. It expires in 10 minutes. If you did not request this, ignore this email.`,
@@ -281,6 +262,7 @@ router.post("/password-reset/confirm", validate(resetConfirmSchema), async (req,
       ...record,
       passwordHash: await bcrypt.hash(password, 12),
       sessionVersion: Number(record.sessionVersion || 0) + 1,
+      mustChangePassword: false,
     });
     await pool.query("DELETE FROM password_resets WHERE email = $1", [normalizedEmail]);
     await logAudit(req, "password_reset", record.id, record);

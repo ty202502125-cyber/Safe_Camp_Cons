@@ -10,26 +10,30 @@ import {
 import SuperAdminPage from "./pages/super-admin/SuperAdminPage.jsx";
 import AdminPage from "./pages/admin/AdminPage.jsx";
 import StudentPage from "./pages/student/StudentPage.jsx";
+import InitialPasswordForm from "./pages/auth/InitialPasswordForm.jsx";
 import { authApi, userApi } from "./services/api.js";
 
 export default function App() {
   const [users, setUsers] = useState([]);
+  const [me, setMe] = useState(null);
   const [activities, setActivities] = useStored(
     "campus_serve_activities",
     seedActs,
     "activities",
+    Boolean(me && !me.mustChangePassword),
   );
   const [enrollments, setEnrollments] = useStored(
     "campus_serve_enrollments",
     seedEnr,
     "enrollments",
+    Boolean(me && !me.mustChangePassword),
   );
   const [organizations, setOrganizations] = useStored(
     "campus_serve_organizations",
     seedOrganizations,
     "organizations",
+    Boolean(me && !me.mustChangePassword),
   );
-  const [me, setMe] = useState(null);
   const [eligibleColleges, setEligibleColleges] = useState([]);
   const [booting, setBooting] = useState(true);
   const [theme, setTheme] = useStored("campus_serve_theme", "light");
@@ -54,7 +58,7 @@ export default function App() {
         const session = await authApi.me();
         if (active) {
           setMe(session.user);
-          await refreshUsers();
+          if (!session.user.mustChangePassword) await refreshUsers();
         }
       } catch {
         // No active session; the sign-in screen will be shown.
@@ -80,7 +84,7 @@ export default function App() {
   async function signIn(email, password) {
     const session = await authApi.login(email, password);
     setMe(session.user);
-    await refreshUsers();
+    if (!session.user.mustChangePassword) await refreshUsers();
     return session.user;
   }
 
@@ -104,7 +108,11 @@ export default function App() {
   async function createUser(details) {
     const result = await userApi.create(details);
     await refreshUsers();
-    return result.user;
+    return result;
+  }
+
+  async function resendAdminPassword(email, password) {
+    return userApi.resendPassword(email, password);
   }
 
   async function setUserStatus(id, status) {
@@ -123,8 +131,16 @@ export default function App() {
     login: signIn,
     register,
     logout,
-    changePassword: authApi.changePassword,
+    changePassword: async (currentPassword, newPassword) => {
+      const session = await authApi.changePassword(
+        currentPassword,
+        newPassword,
+      );
+      setMe(session.user);
+      return session;
+    },
     createUser,
+    resendAdminPassword,
     setUserStatus,
     removeUser,
     eligibleColleges,
@@ -158,6 +174,8 @@ export default function App() {
       )}
       {!me ? (
         <AuthScreen d={appData} />
+      ) : me.mustChangePassword ? (
+        <InitialPasswordForm d={appData} />
       ) : me.role === "Super Admin" ? (
         <SuperAdminPage d={appData} />
       ) : me.role === "Admin" ? (

@@ -42,12 +42,17 @@ export const resetConfirmSchema = z.object({
 
 export const adminCreateSchema = z.object({
   email: wmsuEmail,
-  password,
+  password: z.string().regex(/^[A-Za-z0-9_-]{32}$/, "Generate a valid temporary password."),
   last: name,
   first: name,
   mi: z.string().trim().max(2).optional().default("").transform((v) => v.replace(/\./g, "")),
   college: z.string().trim().min(1).max(200),
   orgType: z.string().trim().max(100).optional(),
+});
+
+export const resendPasswordSchema = z.object({
+  email: wmsuEmail,
+  password: z.string().regex(/^[A-Za-z0-9_-]{32}$/, "Generate a valid temporary password."),
 });
 
 export const statusSchema = z.object({

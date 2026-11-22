@@ -1,6 +1,6 @@
 import { LOGO } from "../data/appData.js";
 
-export const loadImg = (src) =>
+const loadImg = (src) =>
   new Promise((res) => {
     const i = new Image();
     i.crossOrigin = "anonymous";
@@ -9,7 +9,7 @@ export const loadImg = (src) =>
     i.src = src;
     setTimeout(() => res(null), 4000);
   });
-export function wrapText(ctx, text, maxWidth) {
+function wrapText(ctx, text, maxWidth) {
   const lines = [];
   let line = "";
   text.split(" ").forEach((w) => {

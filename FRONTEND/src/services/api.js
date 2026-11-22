@@ -64,6 +64,11 @@ export const userApi = {
       method: "POST",
       body: JSON.stringify(details),
     }),
+  resendPassword: (email, password) =>
+    request("/api/users/resend-password", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
   updateStatus: (id, status) =>
     request(`/api/users/${id}`, {
       method: "PATCH",
