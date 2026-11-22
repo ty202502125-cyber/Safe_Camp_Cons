@@ -401,6 +401,9 @@ export function SuperAdminPage({ d, start }) {
         <SuperAdminHomePage
           users={users}
           activities={acts}
+          enrollments={enr}
+          organizations={organizations}
+          academicYears={academicYears}
           pending={pending}
           adminCount={admins.length}
           studentCount={students.length}

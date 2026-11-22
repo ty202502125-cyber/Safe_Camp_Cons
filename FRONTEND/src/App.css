@@ -3399,3 +3399,315 @@ small,
     align-items: flex-start;
   }
 }
+
+/* Super Admin overview */
+.ov-hero-meta,
+.ov-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+.ov-hero-meta {
+  margin-top: 22px;
+}
+.ov-hero-actions {
+  margin-top: 18px;
+}
+.ov-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.ov-chip-alert {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: transparent;
+  color: var(--cdeep);
+}
+.ov-highlights {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.ov-highlight {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-height: 132px;
+  padding: 18px;
+  overflow: hidden;
+}
+.ov-highlight:before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--ov-tone, var(--muted));
+}
+.ov-highlight-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ov-highlight-value {
+  font-size: clamp(26px, 3vw, 34px);
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--ink);
+}
+.ov-highlight-detail {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.ov-rose { --ov-tone: var(--c); }
+.ov-gold { --ov-tone: var(--gold); }
+.ov-ok { --ov-tone: var(--ok); }
+.ov-mute { --ov-tone: var(--muted); }
+.ov-progress {
+  height: 5px;
+  margin-top: auto;
+  border-radius: 999px;
+  background: var(--off);
+  overflow: hidden;
+}
+.ov-progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ov-tone, var(--c));
+}
+.ov-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 18px;
+}
+.ov-panel {
+  min-width: 0;
+}
+.ov-funnel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 6px 0 16px;
+}
+.ov-funnel-row {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) 32px;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+}
+.ov-funnel-label {
+  color: var(--muted);
+  font-weight: 700;
+}
+.ov-funnel-track {
+  height: 9px;
+  border-radius: 999px;
+  background: var(--off);
+  overflow: hidden;
+}
+.ov-funnel-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  min-width: 2px;
+}
+.ov-funnel-muted { background: var(--muted); }
+.ov-funnel-gold { background: var(--gold); }
+.ov-funnel-ok { background: var(--ok); }
+.ov-funnel-row strong {
+  text-align: right;
+}
+.ov-funnel-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+}
+.ov-funnel-foot strong {
+  color: var(--ink);
+}
+.ov-trend-total {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--okbg);
+  color: var(--ok);
+  font-size: 13px;
+  font-weight: 800;
+}
+.ov-spark {
+  width: 100%;
+  height: 96px;
+  overflow: visible;
+}
+.ov-spark-base {
+  stroke: var(--line);
+  stroke-width: 0.4;
+}
+.ov-spark-line {
+  fill: none;
+  stroke: var(--c);
+  stroke-width: 0.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.ov-spark-dot {
+  fill: var(--card);
+  stroke: var(--c);
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+}
+.ov-months {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+.ov-trend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.ov-trend-list > div {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 48px;
+  gap: 10px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+.ov-trend-list strong {
+  text-align: right;
+  color: var(--ink);
+}
+.ov-trend-bar,
+.ov-leader-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--off);
+  overflow: hidden;
+}
+.ov-trend-bar i,
+.ov-leader-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--g);
+}
+.ov-leaders {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 6px 0;
+}
+.ov-leader {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 56px;
+  gap: 10px;
+  align-items: center;
+}
+.ov-leader-rank {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: var(--soft);
+  color: var(--c);
+  font-size: 11px;
+  font-weight: 800;
+}
+.ov-leader-main {
+  min-width: 0;
+}
+.ov-leader-main > span {
+  display: block;
+  margin-bottom: 5px;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ov-leader > strong {
+  text-align: right;
+  font-size: 12px;
+}
+.ov-recent {
+  display: flex;
+  flex-direction: column;
+}
+.ov-recent > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+.ov-recent > div:last-child {
+  border-bottom: 0;
+}
+.ov-recent strong {
+  display: block;
+  font-size: 13px;
+}
+.ov-recent small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.ov-recent > div > span {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.ov-gallery-panel .gallery,
+.ov-gallery-panel .gal {
+  max-height: 240px;
+  overflow: hidden;
+}
+@media (max-width: 1100px) {
+  .ov-highlights {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ov-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .ov-highlights {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ov-funnel-row {
+    grid-template-columns: 68px minmax(0, 1fr) 28px;
+  }
+}

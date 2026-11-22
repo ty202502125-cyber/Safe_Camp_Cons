@@ -1,6 +1,96 @@
 import { useState } from "react";
-import { Gallery, Hero, Panel, Stat } from "../../shared/appCommon.jsx";
-import { Badge, fullName, periodLabel } from "../../utils/appUtils.jsx";
+import { Gallery, Hero, Panel } from "../../shared/appCommon.jsx";
+import {
+  Badge,
+  activityStatus,
+  fmtDate,
+  fullName,
+  periodLabel,
+} from "../../utils/appUtils.jsx";
+
+const MONTHS = (() => {
+  const now = new Date();
+  return Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - 5 + index, 1);
+    return {
+      key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`,
+      label: date.toLocaleString("en-US", { month: "short" }),
+    };
+  });
+})();
+
+const pct = (value, total) =>
+  total ? Math.round((Number(value) / Number(total)) * 100) : 0;
+const monthKey = (value) =>
+  typeof value === "string" && value.length >= 7 ? value.slice(0, 7) : "";
+
+function Highlight({ label, value, detail, tone = "mute", progress }) {
+  return (
+    <article className={`card ov-highlight ov-${tone}`}>
+      <span className="ov-highlight-label">{label}</span>
+      <strong className="ov-highlight-value">{value}</strong>
+      <span className="ov-highlight-detail">{detail}</span>
+      {progress !== undefined && (
+        <div className="ov-progress" aria-hidden="true">
+          <i style={{ width: `${Math.min(100, Math.max(0, progress))}%` }} />
+        </div>
+      )}
+    </article>
+  );
+}
+
+function Sparkline({ points }) {
+  const max = Math.max(1, ...points.map((point) => point.hours));
+  const coords = points
+    .map(
+      (point, index) =>
+        `${(index / Math.max(1, points.length - 1)) * 100},${38 - (point.hours / max) * 32}`,
+    )
+    .join(" ");
+  return (
+    <svg
+      className="ov-spark"
+      viewBox="0 0 100 40"
+      preserveAspectRatio="none"
+      role="img"
+      aria-label="Verified service hours over the last six months"
+    >
+      <defs>
+        <linearGradient id="ovSparkFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--c)" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="var(--c)" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <line x1="0" y1="38" x2="100" y2="38" className="ov-spark-base" />
+      <polygon points={`0,40 ${coords} 100,40`} fill="url(#ovSparkFill)" />
+      <polyline points={coords} className="ov-spark-line" />
+      {points.map((point, index) => (
+        <circle
+          key={point.key}
+          cx={(index / Math.max(1, points.length - 1)) * 100}
+          cy={38 - (point.hours / max) * 32}
+          r="1.6"
+          className="ov-spark-dot"
+        />
+      ))}
+    </svg>
+  );
+}
+
+function FunnelRow({ label, value, max, tone }) {
+  return (
+    <div className="ov-funnel-row">
+      <span className="ov-funnel-label">{label}</span>
+      <div className="ov-funnel-track">
+        <i
+          className={`ov-funnel-fill ov-funnel-${tone}`}
+          style={{ width: `${(value / max) * 100}%` }}
+        />
+      </div>
+      <strong>{value}</strong>
+    </div>
+  );
+}
 
 export function PendingActivityTable({
   list,
@@ -101,6 +191,9 @@ export function PendingActivityTable({
 export default function SuperAdminHomePage({
   users,
   activities,
+  enrollments = [],
+  organizations = [],
+  academicYears = [],
   pending,
   adminCount,
   studentCount,
@@ -109,47 +202,234 @@ export default function SuperAdminHomePage({
   onDecide,
   onToggleMandatory,
 }) {
-  const statuses = ["Open", "Ongoing", "Completed", "Pending", "Rejected"];
+  const activeYear = academicYears.find((year) => year.status === "Active");
+  const verified = enrollments.filter((entry) => entry.attended && entry.verified);
+  const studentsById = new Map(users.map((user) => [user.id, user]));
+  const activeColleges = organizations.filter(
+    (org) => org.type === "College" && org.status === "Active",
+  );
+  const staffedColleges = activeColleges.filter((org) =>
+    users.some(
+      (user) =>
+        user.role === "Admin" &&
+        user.status === "Active" &&
+        user.college === org.name,
+    ),
+  );
+
+  const mandatoryIds = new Set(
+    activities.filter((activity) => activity.mandatory).map((activity) => activity.id),
+  );
+  const mandatoryEnrollments = enrollments.filter(
+    (entry) =>
+      mandatoryIds.has(entry.actId) && entry.status === "Accepted",
+  );
+  const mandatoryDone = mandatoryEnrollments.filter(
+    (entry) => entry.attended && entry.verified,
+  ).length;
+
+  const pipeline = [
+    { label: "Requested", value: activities.filter((a) => a.status === "Pending").length, tone: "muted" },
+    {
+      label: "Published",
+      value: activities.filter((a) => ["Open", "Ongoing", "Completed"].includes(a.status)).length,
+      tone: "gold",
+    },
+    {
+      label: "Ongoing",
+      value: activities.filter((a) => a.status === "Ongoing").length,
+      tone: "gold",
+    },
+    {
+      label: "Completed",
+      value: activities.filter(
+        (a) => a.status === "Completed" || activityStatus(a) === "Completed",
+      ).length,
+      tone: "ok",
+    },
+  ];
+  const maxPipeline = Math.max(1, ...pipeline.map((step) => step.value));
+
+  const trend = MONTHS.map((month) => ({
+    ...month,
+    hours: verified
+      .filter(
+        (entry) =>
+          monthKey(entry.logDate || entry.verifiedAt || entry.submittedAt) === month.key,
+      )
+      .reduce((sum, entry) => sum + Number(entry.hours || 0), 0),
+  }));
+  const trendTotal = trend.reduce((sum, month) => sum + month.hours, 0);
+  const maxHours = Math.max(1, ...trend.map((month) => month.hours));
+
+  const hoursByCollege = new Map();
+  verified.forEach((entry) => {
+    const college = studentsById.get(entry.userId)?.college;
+    if (!college) return;
+    hoursByCollege.set(
+      college,
+      (hoursByCollege.get(college) || 0) + Number(entry.hours || 0),
+    );
+  });
+  const collegeLeaders = [...hoursByCollege.entries()]
+    .map(([name, hours]) => ({ name, hours }))
+    .sort((a, b) => b.hours - a.hours)
+    .slice(0, 5);
+  const maxCollegeHours = Math.max(1, ...collegeLeaders.map((row) => row.hours));
+
+  const recent = activities
+    .slice()
+    .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))
+    .slice(0, 5);
 
   return (
     <>
       <Hero
         title="Oversee every service, everywhere."
-        text="Review activity requests from campus offices, create Admin accounts, and monitor volunteer engagement across WMSU."
-      />
-      <section className="stats">
-        <Stat
+        text="Review activity requests, manage academic periods, and follow volunteer impact across WMSU from one place."
+      >
+        <div className="ov-hero-meta">
+          <span className="ov-chip">
+            {activeYear
+              ? `${activeYear.year} · ${activeYear.semester}`
+              : "No active academic period"}
+          </span>
+          <span className="ov-chip ov-chip-alert">
+            {pending.length} awaiting review
+          </span>
+        </div>
+        <div className="ov-hero-actions">
+          <button type="button" className="btn sm" onClick={() => onNavigate("Approvals")}>
+            Review requests
+          </button>
+          <button type="button" className="btn out sm" onClick={() => onNavigate("Reports & Analytics")}>
+            Open analytics
+          </button>
+        </div>
+      </Hero>
+
+      <section className="ov-highlights" aria-label="Key highlights">
+        <Highlight
           label="Pending approvals"
           value={pending.length}
-          detail="Activity requests to review"
+          detail="Activity requests waiting for a decision"
+          tone="rose"
         />
-        <Stat
-          label="Admin accounts"
-          value={adminCount}
-          detail="Campus offices"
+        <Highlight
+          label="College coverage"
+          value={`${staffedColleges.length}/${activeColleges.length}`}
+          detail="Active colleges with an Admin account"
+          tone="gold"
+          progress={pct(staffedColleges.length, activeColleges.length)}
         />
-        <Stat
-          label="Students"
-          value={studentCount}
-          detail="Registered volunteers"
-        />
-        <Stat
-          label="Logged hours"
+        <Highlight
+          label="Verified hours"
           value={totalHours}
-          detail="Across all activities"
+          detail={`${verified.length} verified attendance records`}
+          tone="ok"
+        />
+        <Highlight
+          label="Mandatory completion"
+          value={`${pct(mandatoryDone, mandatoryEnrollments.length)}%`}
+          detail={`${mandatoryDone}/${mandatoryEnrollments.length} required activities completed`}
+          tone="mute"
+          progress={pct(mandatoryDone, mandatoryEnrollments.length)}
         />
       </section>
-      <Gallery />
-      <div className="two">
+
+      <div className="ov-grid">
+        <Panel
+          eyebrow="ACTIVITY PIPELINE"
+          title="From request to impact"
+          sub="How activities move through review, publication and completion."
+          className="ov-panel"
+        >
+          <div className="ov-funnel">
+            {pipeline.map((step) => (
+              <FunnelRow
+                key={step.label}
+                {...step}
+                max={maxPipeline}
+              />
+            ))}
+          </div>
+          <div className="ov-funnel-foot">
+            <span>
+              <strong>{adminCount}</strong> Admin {adminCount === 1 ? "account" : "accounts"}
+            </span>
+            <span>
+              <strong>{studentCount}</strong> registered students
+            </span>
+            <span>
+              <strong>{activities.length}</strong> total activities
+            </span>
+          </div>
+        </Panel>
+
+        <Panel
+          eyebrow="SERVICE HOURS"
+          title="Verified hours trend"
+          sub="Attendance verified by coordinators over the last six months."
+          className="ov-panel"
+          action={<span className="ov-trend-total">{trendTotal} h</span>}
+        >
+          <Sparkline points={trend} />
+          <div className="ov-months">
+            {trend.map((month) => (
+              <span key={month.key}>{month.label}</span>
+            ))}
+          </div>
+          <div className="ov-trend-list">
+            {trend
+              .slice()
+              .reverse()
+              .slice(0, 3)
+              .map((month) => (
+                <div key={month.key}>
+                  <span>{month.label}</span>
+                  <div className="ov-trend-bar">
+                    <i style={{ width: `${(month.hours / maxHours) * 100}%` }} />
+                  </div>
+                  <strong>{month.hours} h</strong>
+                </div>
+              ))}
+          </div>
+        </Panel>
+      </div>
+
+      <div className="ov-grid">
+        <Panel
+          eyebrow="TOP OFFICES"
+          title="Hours by college"
+          sub="Colleges with the most verified volunteer hours."
+          className="ov-panel"
+        >
+          <div className="ov-leaders">
+            {collegeLeaders.map((row, index) => (
+              <div className="ov-leader" key={row.name}>
+                <span className="ov-leader-rank">{index + 1}</span>
+                <div className="ov-leader-main">
+                  <span>{row.name}</span>
+                  <div className="ov-leader-track">
+                    <i style={{ width: `${(row.hours / maxCollegeHours) * 100}%` }} />
+                  </div>
+                </div>
+                <strong>{row.hours} h</strong>
+              </div>
+            ))}
+            {collegeLeaders.length === 0 && (
+              <p className="note">No verified hours recorded yet.</p>
+            )}
+          </div>
+        </Panel>
+
         <Panel
           eyebrow="NEEDS YOUR ATTENTION"
           title="Awaiting approval"
+          sub="New activity requests from campus offices."
+          className="ov-panel"
           action={
-            <button
-              type="button"
-              className="btn out sm"
-              onClick={() => onNavigate("Approvals")}
-            >
+            <button type="button" className="btn out sm" onClick={() => onNavigate("Approvals")}>
               Open approvals
             </button>
           }
@@ -161,29 +441,44 @@ export default function SuperAdminHomePage({
             onToggleMandatory={onToggleMandatory}
           />
         </Panel>
-        <Panel eyebrow="ACTIVITY STATUS" title="Programs at a glance">
-          <div className="bars">
-            {statuses.map((status) => {
-              const count = activities.filter(
-                (activity) => activity.status === status,
-              ).length;
-              const percent = activities.length
-                ? (count / activities.length) * 100
-                : 0;
+      </div>
 
-              return (
-                <div key={status}>
-                  <div className="row">
-                    <span>{status}</span>
-                    <b>{count}</b>
-                  </div>
-                  <div className="bar">
-                    <i style={{ width: `${percent}%` }} />
-                  </div>
+      <div className="ov-grid">
+        <Panel
+          eyebrow="LATEST ACTIVITIES"
+          title="Recently added"
+          sub="The newest activities across all offices."
+          className="ov-panel"
+          action={
+            <button type="button" className="tb" onClick={() => onNavigate("Monitoring")}>
+              View all
+            </button>
+          }
+        >
+          <div className="ov-recent">
+            {recent.map((activity) => (
+              <div key={activity.id}>
+                <div>
+                  <strong>{activity.title}</strong>
+                  <small>
+                    {periodLabel(activity)} · {users.find((user) => user.id === activity.by)?.college || "Office not set"}
+                  </small>
                 </div>
-              );
-            })}
+                <span>{fmtDate(activity.date)}</span>
+                <Badge s={activityStatus(activity)} />
+              </div>
+            ))}
+            {recent.length === 0 && <p className="note">No activities have been added yet.</p>}
           </div>
+        </Panel>
+
+        <Panel
+          eyebrow="CAMPUS LIFE"
+          title="Moments from the community"
+          sub="A quick look at campus service activities."
+          className="ov-panel ov-gallery-panel"
+        >
+          <Gallery />
         </Panel>
       </div>
     </>
