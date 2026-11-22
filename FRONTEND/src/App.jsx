@@ -88,6 +88,10 @@ export default function App() {
     return session.user;
   }
 
+  async function requestSignupCode(email) {
+    return authApi.requestSignupCode(email);
+  }
+
   async function register(details) {
     const session = await authApi.register(details);
     setMe(session.user);
@@ -130,6 +134,7 @@ export default function App() {
     me,
     login: signIn,
     register,
+    requestSignupCode,
     logout,
     changePassword: async (currentPassword, newPassword) => {
       const session = await authApi.changePassword(

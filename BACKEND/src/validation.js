@@ -17,6 +17,7 @@ export const loginSchema = z.object({
 
 export const registerSchema = z.object({
   email: wmsuEmail,
+  code: z.string().regex(/^\d{6}$/, "Enter the six-digit verification code."),
   password,
   last: name,
   first: name,
@@ -28,6 +29,10 @@ export const registerSchema = z.object({
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1),
   newPassword: password,
+});
+
+export const signupRequestSchema = z.object({
+  email: wmsuEmail,
 });
 
 export const resetRequestSchema = z.object({

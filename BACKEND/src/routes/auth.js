@@ -7,6 +7,7 @@ import {
   validate,
   loginSchema,
   registerSchema,
+  signupRequestSchema,
   changePasswordSchema,
   resetRequestSchema,
   resetConfirmSchema,
@@ -80,9 +81,55 @@ router.post("/logout", requireAuth, async (req, res, next) => {
   }
 });
 
+// Step 1 of student sign-up: prove the WMSU mailbox is reachable.
+router.post("/signup/request", validate(signupRequestSchema), async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const users = await listUsers();
+    if (users.some((user) => user.email?.toLowerCase() === email))
+      return res.status(409).json({ error: "An account with this email already exists. Sign in instead." });
+
+    const previous = await pool.query(
+      "SELECT sent_at FROM signup_verifications WHERE email = $1",
+      [email],
+    );
+    if (previous.rows[0] && Date.now() - new Date(previous.rows[0].sent_at).getTime() < 60_000)
+      return res.status(429).json({ error: "Please wait one minute before requesting another code." });
+
+    const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
+    if (isSmtpConfigured()) {
+      try {
+        await sendEmail({
+          to: email,
+          subject: "Your Campus Serve sign-up verification code",
+          text: `Welcome to Campus Serve! Your verification code is ${code}. It expires in 10 minutes. If you did not request this, ignore this email.`,
+        });
+      } catch (error) {
+        console.error("Sign-up verification email delivery failed:", error.message);
+        return res.status(502).json({ error: "The verification email could not be delivered. Check the SMTP settings and try again." });
+      }
+    } else if (process.env.NODE_ENV === "production")
+      return res.status(503).json({ error: "Email verification is not configured. Add SMTP settings to BACKEND/.env and restart the API." });
+
+    if (process.env.NODE_ENV !== "production")
+      console.warn(`[DEV SIGNUP CODE] ${email}: ${code} (expires in 10 minutes)`);
+
+    await pool.query(
+      `INSERT INTO signup_verifications (email, code_hash, sent_at, expires_at, attempts)
+       VALUES ($1, $2, NOW(), NOW() + INTERVAL '10 minutes', 0)
+       ON CONFLICT (email) DO UPDATE SET code_hash = $2, sent_at = NOW(),
+         expires_at = NOW() + INTERVAL '10 minutes', attempts = 0`,
+      [email, Buffer.from(hashCode(code))],
+    );
+    res.json({ message: `A verification code was sent to ${email}. It expires in 10 minutes.` });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post("/register", validate(registerSchema), async (req, res, next) => {
   try {
-    const { email, password, last, first, mi, idno, college } = req.body || {};
+    const { email, code, password, last, first, mi, idno, college } = req.body || {};
     if (
       !validText(email, 254) ||
       !WMSU_EMAIL.test(email.trim().toLowerCase()) ||
@@ -105,6 +152,23 @@ router.post("/register", validate(registerSchema), async (req, res, next) => {
       )
     )
       return res.status(409).json({ error: "An account with this ID number already exists." });
+
+    const pending = await pool.query(
+      "SELECT code_hash, expires_at, attempts FROM signup_verifications WHERE email = $1",
+      [normalizedEmail],
+    );
+    const codeRow = pending.rows[0];
+    if (!codeRow || new Date(codeRow.expires_at).getTime() < Date.now() || codeRow.attempts >= 5) {
+      await pool.query("DELETE FROM signup_verifications WHERE email = $1", [normalizedEmail]);
+      return res.status(400).json({ error: "Your verification code is invalid or expired. Request a new one." });
+    }
+    if (!timingSafeEqual(Buffer.from(hashCode(code)), Buffer.from(codeRow.code_hash))) {
+      await pool.query(
+        "UPDATE signup_verifications SET attempts = attempts + 1 WHERE email = $1",
+        [normalizedEmail],
+      );
+      return res.status(400).json({ error: "That verification code is incorrect." });
+    }
 
     const candidate = { role: "User", college, status: "Active" };
     if (!studentCanSignIn(candidate, users, await loadOrganizationsForSignIn()))
@@ -142,6 +206,7 @@ router.post("/register", validate(registerSchema), async (req, res, next) => {
         user.status,
       ],
     );
+    await pool.query("DELETE FROM signup_verifications WHERE email = $1", [normalizedEmail]);
     await logAudit(req, "register", user.id, user);
     sendSession(res, user);
   } catch (error) {

@@ -33,6 +33,11 @@ export const authApi = {
       body: JSON.stringify({ email, password }),
     }),
   logout: () => request("/api/auth/logout", { method: "POST" }),
+  requestSignupCode: (email) =>
+    request("/api/auth/signup/request", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
   register: (details) =>
     request("/api/auth/register", {
       method: "POST",

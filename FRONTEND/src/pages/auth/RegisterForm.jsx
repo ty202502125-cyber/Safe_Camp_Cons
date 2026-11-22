@@ -4,6 +4,9 @@ export default function RegisterForm({ d, studentColleges }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [stage, setStage] = useState("details");
+  const [pending, setPending] = useState(null);
+  const [code, setCode] = useState("");
 
   async function register(event) {
     event.preventDefault();
@@ -26,7 +29,8 @@ export default function RegisterForm({ d, studentColleges }) {
 
     setBusy(true);
     try {
-      await d.register({
+      const result = await d.requestSignupCode(email);
+      setPending({
         email,
         password: form.pw,
         last: form.last.trim(),
@@ -35,6 +39,9 @@ export default function RegisterForm({ d, studentColleges }) {
         idno: form.idno.trim(),
         college: form.college,
       });
+      setCode("");
+      setStage("verify");
+      d.flash(result.message);
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -42,9 +49,48 @@ export default function RegisterForm({ d, studentColleges }) {
     }
   }
 
+  async function verify(event) {
+    event.preventDefault();
+    setError("");
+    if (!/^\d{6}$/.test(code)) {
+      setError("Enter the six-digit code sent to your email.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await d.register({ ...pending, code });
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resendCode() {
+    setError("");
+    setBusy(true);
+    try {
+      const result = await d.requestSignupCode(pending.email);
+      d.flash(result.message);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function backToDetails() {
+    setStage("details");
+    setPending(null);
+    setCode("");
+    setError("");
+  }
+
   return (
     <>
-      <h2>Create your student account</h2>
+      {stage === "details" ? (
+        <>
+          <h2>Create your student account</h2>
       <p className="sub">
         Choose your college to see its activities. Colleges appear after an
         Admin has been assigned by the Super Admin.
@@ -161,11 +207,48 @@ export default function RegisterForm({ d, studentColleges }) {
             </button>
           </div>
         </label>
-        {error && <div className="err">{error}</div>}
-        <button className="btn full" style={{ gridColumn: "1 / -1" }} disabled={busy}>
-          {busy ? "Creating account…" : "Create account"}
-        </button>
-      </form>
+          {error && <div className="err">{error}</div>}
+          <button className="btn full" style={{ gridColumn: "1 / -1" }} disabled={busy}>
+            {busy ? "Sending code…" : "Send verification code"}
+          </button>
+        </form>
+        </>
+      ) : (
+        <>
+          <h2>Verify your WMSU email</h2>
+          <p className="sub">
+            We sent a six-digit code to <b>{pending.email}</b>. Enter it below to
+            finish creating your student account. The code expires in 10 minutes.
+            If it is not in your inbox, check Spam.
+          </p>
+          <form className="f" onSubmit={verify}>
+            <label className="w">
+              Verification code
+              <input
+                value={code}
+                onChange={(event) =>
+                  setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                placeholder="6-digit code"
+                required
+              />
+            </label>
+            {error && <div className="err">{error}</div>}
+            <button className="btn full" style={{ gridColumn: "1 / -1" }} disabled={busy}>
+              {busy ? "Verifying…" : "Verify & create account"}
+            </button>
+            <button type="button" className="tb" onClick={resendCode} disabled={busy}>
+              Resend code
+            </button>
+            <button type="button" className="tb" onClick={backToDetails} disabled={busy}>
+              Back to sign-up
+            </button>
+          </form>
+        </>
+      )}
     </>
   );
 }
