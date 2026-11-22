@@ -3500,6 +3500,9 @@ small,
 .ov-panel {
   min-width: 0;
 }
+.ov-grid-single {
+  grid-template-columns: minmax(0, 1fr);
+}
 .ov-funnel {
   display: flex;
   flex-direction: column;
@@ -3689,11 +3692,6 @@ small,
   color: var(--muted);
   font-size: 11px;
   white-space: nowrap;
-}
-.ov-gallery-panel .gallery,
-.ov-gallery-panel .gal {
-  max-height: 240px;
-  overflow: hidden;
 }
 @media (max-width: 1100px) {
   .ov-highlights {

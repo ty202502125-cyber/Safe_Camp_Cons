@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Gallery, Hero, Panel } from "../../shared/appCommon.jsx";
+import { Hero, Panel } from "../../shared/appCommon.jsx";
 import {
   Badge,
   activityStatus,
@@ -443,7 +443,7 @@ export default function SuperAdminHomePage({
         </Panel>
       </div>
 
-      <div className="ov-grid">
+      <div className="ov-grid ov-grid-single">
         <Panel
           eyebrow="LATEST ACTIVITIES"
           title="Recently added"
@@ -470,15 +470,6 @@ export default function SuperAdminHomePage({
             ))}
             {recent.length === 0 && <p className="note">No activities have been added yet.</p>}
           </div>
-        </Panel>
-
-        <Panel
-          eyebrow="CAMPUS LIFE"
-          title="Moments from the community"
-          sub="A quick look at campus service activities."
-          className="ov-panel ov-gallery-panel"
-        >
-          <Gallery />
         </Panel>
       </div>
     </>
