@@ -251,14 +251,34 @@ export function AdminPage({ d, start }) {
     flash(`Request ${status.toLowerCase()}.`, status === "Declined");
   }
   const verify = (e) => {
-    setEnr(enr.map((x) => (x.id === e.id ? { ...x, verified: true } : x)));
+    setEnr(
+      enr.map((x) =>
+        x.id === e.id
+          ? {
+              ...x,
+              verified: true,
+              verifiedAt: new Date().toISOString(),
+              verifiedBy: me?.id ?? null,
+            }
+          : x,
+      ),
+    );
     flash("Attendance verified.");
   };
   const rejectLog = (e) => {
     setEnr(
       enr.map((x) =>
         x.id === e.id
-          ? { ...x, attended: false, hours: 0, verified: false, logDate: "" }
+          ? {
+              ...x,
+              attended: false,
+              hours: 0,
+              verified: false,
+              logDate: "",
+              submittedAt: null,
+              verifiedAt: null,
+              verifiedBy: null,
+            }
           : x,
       ),
     );
@@ -771,13 +791,25 @@ export function AdminPage({ d, start }) {
                           {a.title}
                           <small>{statusOf(a)}</small>
                         </td>
-                        <td>{e.attended ? fmtDate(e.logDate) : "—"}</td>
+                        <td>
+                          {e.attended ? fmtDate(e.logDate) : "—"}
+                          {e.submittedAt && (
+                            <small title={e.submittedAt}>
+                              Submitted {fmtDate(e.submittedAt)}
+                            </small>
+                          )}
+                        </td>
                         <td>{e.attended ? `${e.hours} / ${a.hours}` : "—"}</td>
                         <td>
                           {e.attended ? (
                             <Badge s={e.verified ? "Verified" : "Logged"} />
                           ) : (
                             <small>Not logged yet</small>
+                          )}
+                          {e.verifiedAt && (
+                            <small title={e.verifiedAt}>
+                              {fmtDate(e.verifiedAt)}
+                            </small>
                           )}
                         </td>
                         <td>

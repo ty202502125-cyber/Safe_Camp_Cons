@@ -59,6 +59,11 @@ router.put("/:collection", async (req, res, next) => {
       await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
         `app_records:${collection}`,
       ]);
+      // Reporting triggers read this to attribute every change to an actor.
+      await client.query(
+        "SELECT set_config('app.actor_id', $1, true), set_config('app.actor_role', $2, true)",
+        [String(req.user?.id ?? ""), String(req.user?.role ?? "")],
+      );
       await client.query(
         "DELETE FROM app_records WHERE collection = $1 AND NOT (record_id = ANY($2::text[]))",
         [collection, ids],

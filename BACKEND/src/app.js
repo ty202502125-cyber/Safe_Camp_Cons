@@ -7,6 +7,7 @@ import pool from "./db.js";
 import dataRouter from "./routes/data.js";
 import authRouter from "./routes/auth.js";
 import usersRouter from "./routes/users.js";
+import reportsRouter from "./routes/reports.js";
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use("/api/auth", authLimiter);
 
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
+app.use("/api/reports", reportsRouter);
 
 app.get("/api/health", async (_req, res) => {
   try {

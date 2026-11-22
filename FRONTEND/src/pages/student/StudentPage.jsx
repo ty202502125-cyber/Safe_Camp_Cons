@@ -187,7 +187,11 @@ export function StudentPage({ d, start }) {
               attended: true,
               hours: h,
               logDate: log.date,
+              submittedAt: x.submittedAt || new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
               verified: false,
+              verifiedAt: null,
+              verifiedBy: null,
             }
           : x,
       ),

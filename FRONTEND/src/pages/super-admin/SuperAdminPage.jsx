@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import SuperAdminHomePage, { PendingActivityTable } from "./HomePage.jsx";
 import {
   fullName,
@@ -11,6 +11,8 @@ import {
   Shell,
   Profile,
 } from "../../shared/appCommon.jsx";
+
+const ReportsPage = lazy(() => import("./ReportsPage.jsx"));
 
 export function SuperAdminPage({ d, start }) {
   const {
@@ -44,7 +46,7 @@ export function SuperAdminPage({ d, start }) {
   const pending = acts.filter((a) => a.status === "Pending");
   const owner = (a) => users.find((u) => u.id === a.by);
   const totalHours = enr
-    .filter((e) => e.attended)
+    .filter((e) => e.attended && e.verified)
     .reduce((s, e) => s + Number(e.hours || 0), 0);
 
   function decide(id, status) {
@@ -265,6 +267,7 @@ export function SuperAdminPage({ d, start }) {
         ["Colleges & Offices"],
         ["Admin Accounts"],
         ["Monitoring"],
+        ["Reports & Analytics"],
         ["Students"],
         ["My Profile"],
       ]}
@@ -764,6 +767,21 @@ export function SuperAdminPage({ d, start }) {
             </table>
           </div>
         </Panel>
+      )}
+      {page === "Reports & Analytics" && (
+        <Suspense
+          fallback={
+            <Panel
+              eyebrow="REPORTS"
+              title="Loading reports…"
+              sub="Preparing the analytics dashboard."
+            >
+              <p className="sub">Please wait…</p>
+            </Panel>
+          }
+        >
+          <ReportsPage />
+        </Suspense>
       )}
       {page === "Students" && (
         <Panel

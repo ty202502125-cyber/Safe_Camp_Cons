@@ -64,6 +64,24 @@ export const statusSchema = z.object({
   status: z.enum(["Active", "Inactive"]),
 });
 
+const reportDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD.")
+  .optional();
+
+export const reportQuerySchema = z.object({
+  from: reportDate,
+  to: reportDate,
+  category: z.string().trim().max(100).optional(),
+  status: z.string().trim().max(40).optional(),
+  college: z.string().trim().max(150).optional(),
+  asOf: z
+    .string()
+    .refine((value) => !Number.isNaN(Date.parse(value)), "Use a valid date.")
+    .optional(),
+  excludeTest: z.enum(["true", "false"]).optional(),
+});
+
 export function validate(schema) {
   return (req, res, next) => {
     const result = schema.safeParse(req.body);
@@ -72,6 +90,18 @@ export function validate(schema) {
         .status(400)
         .json({ error: result.error.issues[0]?.message || "Invalid request." });
     req.body = result.data;
+    next();
+  };
+}
+
+export function validateQuery(schema) {
+  return (req, res, next) => {
+    const result = schema.safeParse(req.query);
+    if (!result.success)
+      return res
+        .status(400)
+        .json({ error: result.error.issues[0]?.message || "Invalid query." });
+    req.reportQuery = result.data;
     next();
   };
 }

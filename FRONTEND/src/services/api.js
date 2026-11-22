@@ -82,4 +82,24 @@ export const userApi = {
   remove: (id) => request(`/api/users/${id}`, { method: "DELETE" }),
 };
 
+function reportQuery(filters = {}) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    // Blank dates/selects stay out of the URL; false must still be sent.
+    if (value === "" || value === null || value === undefined) continue;
+    params.set(key, String(value));
+  }
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+export const reportApi = {
+  overview: (filters) => request(`/api/reports/overview${reportQuery(filters)}`),
+  colleges: (filters) => request(`/api/reports/colleges${reportQuery(filters)}`),
+  college: (name, filters) =>
+    request(
+      `/api/reports/colleges/${encodeURIComponent(name)}${reportQuery(filters)}`,
+    ),
+};
+
 export default api;

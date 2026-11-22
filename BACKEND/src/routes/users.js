@@ -214,6 +214,10 @@ router.delete("/:id", requireAuth, requirePasswordChangeComplete, requireRole("A
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
+      await client.query(
+        "SELECT set_config('app.actor_id', $1, true), set_config('app.actor_role', $2, true)",
+        [String(req.user?.id ?? ""), String(req.user?.role ?? "")],
+      );
       await client.query("DELETE FROM portal_users WHERE id = $1", [target.id]);
       await client.query(
         "DELETE FROM app_records WHERE collection = 'enrollments' AND data->>'userId' = $1",

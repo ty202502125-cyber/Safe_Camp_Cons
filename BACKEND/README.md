@@ -28,6 +28,16 @@ Creating an Admin through the Super Admin console generates a random temporary p
 
 For local password-reset testing, leave the `SMTP_*` values blank and keep `NODE_ENV=development`: the API prints the 6-digit reset code in its terminal (`[DEV PASSWORD RESET] ...`) instead of sending an email. Admin creation uses the same no-SMTP fallback in non-production but also keeps the password on screen for the Super Admin. Production requires real `SMTP_HOST`, `SMTP_USER` and `SMTP_APP_PASSWORD` (plus `SMTP_PORT`, `SMTP_SECURE` and optional `SMTP_FROM`); with Gmail, use a 2-Step Verification App Password, never the account password. Emailing a temporary password is less secure than an expiring setup link; the required first-login password change limits its lifetime but cannot protect the message while it is in the mailbox.
 
+## Reports and analytics
+
+`GET /api/reports/overview`, `GET /api/reports/colleges` and `GET /api/reports/colleges/:college` are Super Admin-only endpoints that return university-wide or per-college KPIs, monthly series, breakdowns and top activities. Supported query filters are `from`, `to` (YYYY-MM-DD), `category`, `status`, `college`, `asOf` (ISO timestamp) and `excludeTest` (default `true`). Responses are cached in memory for 30 seconds per filter set.
+
+Migration `004_reporting_history.sql` adds `created_at` to `app_records`, an immutable `record_events` table, and triggers on `app_records` and `portal_users`. Every create, status change, attendance change, college/role change and deletion is recorded with an actor and timestamp, so reports can reconstruct state at a past `asOf` time instead of relying only on the current row. Deleted records remain in the event log and are excluded from current state but can appear in historical reconstructions.
+
+Hours in reports count **only verified attendance** (`attended && verified`). Student submissions store `submittedAt`; Admin verification stores `verifiedAt` and `verifiedBy`, and re-submission clears them. Likely test/probe records are filtered by default; pass `excludeTest=false` to include them.
+
+History tracking starts when migration `004` is applied. The migration seeds one initial snapshot per existing row, but transitions that happened **before** it cannot be reconstructed. Completion status is still derived from activity dates and `endTime`, not from a stored "completed" action.
+
 ## Security notes
 
 - Set `JWT_SECRET` (required in production) and `SUPER_ADMIN_PASSWORD` (required before the first start); never reuse a demo password.
