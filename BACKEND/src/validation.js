@@ -74,6 +74,12 @@ export const reportQuerySchema = z.object({
   to: reportDate,
   category: z.string().trim().max(100).optional(),
   status: z.string().trim().max(40).optional(),
+  semester: z.enum(["1st Semester", "2nd Semester"]).optional(),
+  schoolYear: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}$/, "Use YYYY-YY.")
+    .optional(),
   college: z.string().trim().max(150).optional(),
   asOf: z
     .string()

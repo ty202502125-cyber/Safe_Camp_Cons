@@ -22,9 +22,17 @@ const EMPTY_FILTERS = {
   to: "",
   category: "",
   status: "",
+  semester: "",
+  schoolYear: "",
   asOf: "",
   excludeTest: true,
 };
+const SEMESTER_OPTIONS = ["1st Semester", "2nd Semester"];
+const CURRENT_YEAR = new Date().getUTCFullYear();
+const DEFAULT_SCHOOL_YEARS = Array.from({ length: 7 }, (_, index) => {
+  const first = CURRENT_YEAR - 4 + index;
+  return `${first}-${String(first + 1).slice(-2)}`;
+});
 const CATEGORY_OPTIONS = [...CATEGORIES, "Uncategorized"];
 const STATUS_OPTIONS = [
   "Open",
@@ -56,6 +64,8 @@ const num = (value) => {
 };
 const fmt = (value) =>
   num(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
+const pct = (value, total) =>
+  num(total) > 0 ? Math.min(100, (num(value) / num(total)) * 100) : 0;
 const toIso = (value) => {
   if (!value) return "";
   const date = new Date(value);
@@ -100,6 +110,33 @@ function downloadCsv(rows, filename) {
 
 function ChartEmpty({ text = "No data for the selected filters." }) {
   return <div className="report-empty">{text}</div>;
+}
+
+function ChartTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="report-tip">
+      {label != null && label !== "" && <strong>{label}</strong>}
+      {payload.map((entry, index) => (
+        <div className="report-tip-row" key={`${entry.dataKey ?? index}-${entry.name ?? ""}`}>
+          <span>
+            <i style={{ background: entry.color || entry.fill || "var(--c)" }} />
+            {entry.name || entry.dataKey}
+          </span>
+          <b>{fmt(entry.value)}</b>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MiniBar({ value, max = 100, tone = "" }) {
+  const width = num(max) > 0 ? Math.max(0, Math.min(100, (num(value) / num(max)) * 100)) : 0;
+  return (
+    <span className={`report-mini-bar${tone ? ` ${tone}` : ""}`} aria-hidden="true">
+      <span style={{ width: `${width}%` }} />
+    </span>
+  );
 }
 
 function ExportButton({ rows, filename, label = "Export CSV" }) {
@@ -160,6 +197,8 @@ export default function ReportsPage({ startCollege, onBack }) {
       to: applied.to,
       category: applied.category,
       status: applied.status,
+      semester: applied.semester,
+      schoolYear: applied.schoolYear,
       asOf: toIso(applied.asOf),
       excludeTest: applied.excludeTest,
     }),
@@ -245,6 +284,8 @@ export default function ReportsPage({ startCollege, onBack }) {
   const byCollege = asArray(report?.breakdowns?.byCollege);
   const byCategory = asArray(report?.breakdowns?.byCategory);
   const byStatus = asArray(report?.breakdowns?.byStatus);
+  const bySemester = asArray(report?.breakdowns?.bySemester);
+  const bySchoolYear = asArray(report?.breakdowns?.bySchoolYear);
   const activitiesByMonth = asArray(report?.series?.activitiesByMonth);
   const enrollmentsByMonth = asArray(report?.series?.enrollmentsByMonth);
   const hoursByMonth = asArray(report?.series?.hoursByMonth);
@@ -252,30 +293,75 @@ export default function ReportsPage({ startCollege, onBack }) {
   const scope = college || "University-wide";
   const fileScope = scopeSlug(college);
   const statusTotal = byStatus.reduce((sum, row) => sum + num(row.count), 0);
+  const statusData = byStatus.filter((row) => num(row.count) > 0);
+  const activeFilterCount = Object.entries(applied).filter(([key, value]) =>
+    key === "excludeTest" ? value !== true : Boolean(value),
+  ).length;
+  const coverage = pct(kpis.hours, kpis.submittedHours);
+  const maxCollegeHours = Math.max(1, ...byCollege.map((row) => num(row.hours)));
+  const maxCategoryActivities = Math.max(
+    1,
+    ...byCategory.map((row) => num(row.activities)),
+  );
+  const maxPeriodActivities = Math.max(
+    1,
+    ...[...bySemester, ...bySchoolYear].map((row) => num(row.count)),
+  );
+
+  const schoolYearOptions = [
+    ...new Set([...DEFAULT_SCHOOL_YEARS, ...bySchoolYear.map((row) => row.name)]),
+  ].sort((a, b) => b.localeCompare(a));
+
+  function clearFilters() {
+    setDraft({ ...EMPTY_FILTERS });
+    setApplied({ ...EMPTY_FILTERS });
+  }
 
   const kpiCards = [
-    { label: "Students", value: fmt(kpis.students), hint: "Active registered students" },
-    { label: "Active admins", value: fmt(kpis.activeAdmins), hint: "Admin / Super Admin accounts" },
-    { label: "Activities", value: fmt(kpis.activities), hint: "Within the selected filters" },
-    { label: "Requested", value: fmt(kpis.requested), hint: "Enrollment requests" },
-    { label: "Accepted", value: fmt(kpis.accepted), hint: "Approved enrollments" },
-    { label: "Attended", value: fmt(kpis.attended), hint: "Marked as attended" },
+    { label: "Students", value: fmt(kpis.students), hint: "Active registered students", tone: "rose" },
+    { label: "Active admins", value: fmt(kpis.activeAdmins), hint: "Admin / Super Admin accounts", tone: "rose" },
+    { label: "Activities", value: fmt(kpis.activities), hint: "Within the selected filters", tone: "rose" },
     {
-      label: "VERIFIED",
+      label: "Requested",
+      value: fmt(kpis.requested),
+      hint: "Enrollment requests",
+      tone: "rose",
+      progress: num(kpis.requested) > 0 ? 100 : 0,
+    },
+    {
+      label: "Accepted",
+      value: fmt(kpis.accepted),
+      hint: "Approved enrollments",
+      tone: "gold",
+      progress: pct(kpis.accepted, kpis.requested),
+    },
+    {
+      label: "Attended",
+      value: fmt(kpis.attended),
+      hint: "Marked as attended",
+      tone: "gold",
+      progress: pct(kpis.attended, kpis.requested),
+    },
+    {
+      label: "Verified",
       value: fmt(kpis.verified),
       hint: "Admin-verified attendance",
-      highlight: true,
+      tone: "ok",
+      feature: true,
+      progress: pct(kpis.verified, kpis.requested),
     },
     {
       label: "Verified hours",
       value: fmt(kpis.hours),
       hint: `Hours = verified only · submitted ${fmt(kpis.submittedHours)}`,
+      tone: "ok",
     },
-    { label: "Pending", value: fmt(kpis.pending), hint: "Awaiting an admin decision" },
+    { label: "Pending", value: fmt(kpis.pending), hint: "Awaiting an admin decision", tone: "muted" },
     {
       label: "Completion rate",
       value: `${fmt(kpis.completionRate)}%`,
       hint: "Completed / activities",
+      tone: "ok",
     },
   ];
 
@@ -352,6 +438,26 @@ export default function ReportsPage({ startCollege, onBack }) {
             </select>
           </label>
           <label>
+            Semester
+            <select
+              value={draft.semester}
+              onChange={(event) => updateDraft("semester", event.target.value)}
+            >
+              <option value="">All semesters</option>
+              <OptionList values={SEMESTER_OPTIONS} selected={draft.semester} />
+            </select>
+          </label>
+          <label>
+            School year
+            <select
+              value={draft.schoolYear}
+              onChange={(event) => updateDraft("schoolYear", event.target.value)}
+            >
+              <option value="">All school years</option>
+              <OptionList values={schoolYearOptions} selected={draft.schoolYear} />
+            </select>
+          </label>
+          <label>
             As of (optional)
             <input
               type="datetime-local"
@@ -369,9 +475,19 @@ export default function ReportsPage({ startCollege, onBack }) {
             />
             Exclude test records
           </label>
-          <button className="btn sm" type="submit" disabled={refreshing}>
-            {refreshing ? "Refreshing…" : "Refresh"}
-          </button>
+          <div className="report-filter-actions">
+            <button className="btn sm" type="submit" disabled={refreshing}>
+              {refreshing ? "Refreshing…" : "Refresh"}
+            </button>
+            <button
+              className="btn out sm"
+              type="button"
+              disabled={!activeFilterCount}
+              onClick={clearFilters}
+            >
+              Clear filters
+            </button>
+          </div>
         </form>
         {collegeError && (
           <p className="err">College list unavailable: {collegeError}</p>
@@ -380,7 +496,16 @@ export default function ReportsPage({ startCollege, onBack }) {
           <strong>Scope: {scope}</strong>
           <span>Generated {displayMoment(report?.generatedAt)}</span>
           {report?.asOf && <span>As of {displayMoment(report.asOf)}</span>}
-          {refreshing && <span className="bd gold">Refreshing…</span>}
+          {activeFilterCount > 0 && (
+            <span className="bd">
+              {activeFilterCount} filter{activeFilterCount === 1 ? "" : "s"} active
+            </span>
+          )}
+          {refreshing && (
+            <span className="bd gold" aria-live="polite">
+              Refreshing…
+            </span>
+          )}
         </div>
       </Panel>
 
@@ -409,19 +534,29 @@ export default function ReportsPage({ startCollege, onBack }) {
 
       {!error && report && (
         <>
-          <div className="stats">
+          <div className="stats report-stats">
             {kpiCards.map((card) => (
-              <div className="card stat" key={card.label}>
-                <span className="st">{card.label}</span>
-                <div className={`sv${card.highlight ? " report-verified" : ""}`}>
-                  {card.value}
-                </div>
+              <div
+                className={`card stat report-stat report-stat--${card.tone}${
+                  card.feature ? " report-stat--feature" : ""
+                }`}
+                key={card.label}
+              >
+                <span className="st">
+                  <i className="report-dot" />
+                  {card.label}
+                </span>
+                <div className="sv">{card.value}</div>
                 <small className="sd">{card.hint}</small>
+                {card.progress != null && (
+                  <MiniBar value={card.progress} max={100} />
+                )}
               </div>
             ))}
           </div>
 
           <Panel
+            className="report-notes-panel"
             eyebrow="REPORT NOTES"
             title="How to read these figures"
             sub="Disclosures supplied by the report, including history limits and verified-hours rules."
@@ -437,6 +572,7 @@ export default function ReportsPage({ startCollege, onBack }) {
 
           <div className="report-grid">
             <Panel
+              className="report-span-2"
               eyebrow="ENROLLMENT FUNNEL"
               title="Enrollment activity by month"
               sub="Requests, approvals, attendance and verification."
@@ -448,15 +584,28 @@ export default function ReportsPage({ startCollege, onBack }) {
                       data={enrollmentsByMonth}
                       margin={{ top: 8, right: 12, bottom: 0, left: -16 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e6d3d8" />
+                      <CartesianGrid vertical={false} strokeDasharray="3 6" stroke="currentColor" strokeOpacity={0.25} />
                       <XAxis
                         dataKey="month"
-                        tick={{ fontSize: 10 }}
+                        tick={{ fontSize: 11, fill: "currentColor" }}
                         tickFormatter={(value) => String(value).slice(2)}
+                        axisLine={false}
+                        tickLine={false}
                       />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
-                      <Tooltip />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={{ fontSize: 11, fill: "currentColor" }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={36}
+                      />
+                      <Tooltip content={<ChartTooltip />} />
+                      <Legend
+                        formatter={(value) =>
+                          String(value).charAt(0).toUpperCase() + String(value).slice(1)
+                        }
+                        wrapperStyle={{ fontSize: 11, color: "var(--muted)" }}
+                      />
                       {Object.entries(SERIES_COLORS).map(([key, color]) => (
                         <Line
                           key={key}
@@ -488,19 +637,28 @@ export default function ReportsPage({ startCollege, onBack }) {
                       data={activitiesByMonth}
                       margin={{ top: 8, right: 12, bottom: 0, left: -16 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e6d3d8" />
+                      <CartesianGrid vertical={false} strokeDasharray="3 6" stroke="currentColor" strokeOpacity={0.25} />
                       <XAxis
                         dataKey="month"
-                        tick={{ fontSize: 10 }}
+                        tick={{ fontSize: 11, fill: "currentColor" }}
                         tickFormatter={(value) => String(value).slice(2)}
+                        axisLine={false}
+                        tickLine={false}
                       />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
-                      <Tooltip />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={{ fontSize: 11, fill: "currentColor" }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={36}
+                      />
+                      <Tooltip content={<ChartTooltip />} />
                       <Bar
                         dataKey="count"
                         name="Activities"
                         fill="#b5122b"
                         radius={[6, 6, 0, 0]}
+                        maxBarSize={40}
                       />
                     </BarChart>
                   </ResponsiveContainer>
@@ -522,19 +680,27 @@ export default function ReportsPage({ startCollege, onBack }) {
                       data={hoursByMonth}
                       margin={{ top: 8, right: 12, bottom: 0, left: -16 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e6d3d8" />
+                      <CartesianGrid vertical={false} strokeDasharray="3 6" stroke="currentColor" strokeOpacity={0.25} />
                       <XAxis
                         dataKey="month"
-                        tick={{ fontSize: 10 }}
+                        tick={{ fontSize: 11, fill: "currentColor" }}
                         tickFormatter={(value) => String(value).slice(2)}
+                        axisLine={false}
+                        tickLine={false}
                       />
-                      <YAxis tick={{ fontSize: 10 }} />
-                      <Tooltip />
+                      <YAxis
+                        tick={{ fontSize: 11, fill: "currentColor" }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={36}
+                      />
+                      <Tooltip content={<ChartTooltip />} />
                       <Bar
                         dataKey="hours"
                         name="Verified hours"
                         fill="#8d5b08"
                         radius={[6, 6, 0, 0]}
+                        maxBarSize={40}
                       />
                     </BarChart>
                   </ResponsiveContainer>
@@ -549,35 +715,73 @@ export default function ReportsPage({ startCollege, onBack }) {
               title="Activities by status"
               sub="Derived status of activities in scope."
             >
-              {byStatus.some((row) => num(row.count) > 0) ? (
+              {statusData.length > 0 ? (
                 <div className="chart">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={byStatus.filter((row) => num(row.count) > 0)}
+                        data={statusData}
                         dataKey="count"
                         nameKey="name"
-                        innerRadius={55}
-                        outerRadius={88}
-                        label={({ name, value }) => `${name}: ${value}`}
+                        innerRadius={62}
+                        outerRadius={92}
+                        paddingAngle={2}
+                        stroke="none"
                       >
-                        {byStatus
-                          .filter((row) => num(row.count) > 0)
-                          .map((row, index) => (
-                            <Cell
-                              key={`${row.name}-${index}`}
-                              fill={PIE_COLORS[index % PIE_COLORS.length]}
-                            />
-                          ))}
+                        {statusData.map((row, index) => (
+                          <Cell
+                            key={`${row.name}-${index}`}
+                            fill={PIE_COLORS[index % PIE_COLORS.length]}
+                          />
+                        ))}
                       </Pie>
-                      <Tooltip />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <text x="50%" y="47%" textAnchor="middle" dominantBaseline="middle" className="report-pie-total">
+                        {fmt(statusTotal)}
+                      </text>
+                      <text x="50%" y="58%" textAnchor="middle" dominantBaseline="middle" className="report-pie-label">
+                        activities
+                      </text>
+                      <Tooltip content={<ChartTooltip />} />
+                      <Legend
+                        formatter={(value) =>
+                          String(value).charAt(0).toUpperCase() + String(value).slice(1)
+                        }
+                        wrapperStyle={{ fontSize: 11, color: "var(--muted)" }}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
                 <ChartEmpty text="No activities match the selected filters." />
               )}
+            </Panel>
+
+            <Panel
+              className="report-coverage"
+              eyebrow="DATA QUALITY"
+              title="Attendance verification"
+              sub="Verified hours compared with all submitted attendance hours."
+            >
+              <div className="report-coverage-head">
+                <div>
+                  <span>Submitted hours</span>
+                  <strong>{fmt(kpis.submittedHours)}</strong>
+                </div>
+                <div>
+                  <span>Verified hours</span>
+                  <strong className="report-coverage-verified">{fmt(kpis.hours)}</strong>
+                </div>
+              </div>
+              <div className="report-coverage-track">
+                <span style={{ width: `${coverage}%` }} />
+              </div>
+              <p className="report-coverage-note">
+                {num(kpis.submittedHours) > 0
+                  ? `${fmt(coverage)}% of submitted hours are verified. `
+                  : "No submitted hours in the selected period. "}
+                There {num(kpis.pending) === 1 ? "is" : "are"} {fmt(kpis.pending)} enrollment
+                {num(kpis.pending) === 1 ? "" : "s"} awaiting a decision.
+              </p>
             </Panel>
           </div>
 
@@ -596,10 +800,13 @@ export default function ReportsPage({ startCollege, onBack }) {
               <table>
                 <thead>
                   <tr>
+                    <th>#</th>
                     <th>ACTIVITY</th>
                     <th>COLLEGE</th>
                     <th>CATEGORY</th>
                     <th>DATE</th>
+                    <th>SEMESTER</th>
+                    <th>SCHOOL YEAR</th>
                     <th>STATUS</th>
                     <th>SLOTS</th>
                     <th>REQUESTED</th>
@@ -611,14 +818,19 @@ export default function ReportsPage({ startCollege, onBack }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {topActivities.map((row) => (
+                  {topActivities.map((row, index) => (
                     <tr key={row.id ?? `${row.title}-${row.date}`}>
+                      <td>
+                        <span className="report-rank">{index + 1}</span>
+                      </td>
                       <td>
                         <strong>{row.title || "Untitled activity"}</strong>
                       </td>
                       <td>{row.college || "—"}</td>
                       <td>{row.category || "—"}</td>
                       <td>{displayDate(row.date)}</td>
+                      <td>{row.semester || "—"}</td>
+                      <td>{row.schoolYear || "—"}</td>
                       <td>
                         <Badge s={row.status} />
                       </td>
@@ -629,12 +841,17 @@ export default function ReportsPage({ startCollege, onBack }) {
                       <td>
                         <strong>{fmt(row.verified)}</strong>
                       </td>
-                      <td>{fmt(row.attendanceRate)}%</td>
+                      <td>
+                        <span className="report-cell-bar">
+                          <MiniBar value={row.attendanceRate} max={100} />
+                          <span>{fmt(row.attendanceRate)}%</span>
+                        </span>
+                      </td>
                       <td>{fmt(row.hours)}</td>
                     </tr>
                   ))}
                   {!topActivities.length && (
-                    <Empty cols={12} text="No activities match the selected filters." />
+                    <Empty cols={15} text="No activities match the selected filters." />
                   )}
                 </tbody>
               </table>
@@ -656,6 +873,7 @@ export default function ReportsPage({ startCollege, onBack }) {
               <table>
                 <thead>
                   <tr>
+                    <th>#</th>
                     <th>COLLEGE</th>
                     <th>STUDENTS</th>
                     <th>ADMINS</th>
@@ -669,7 +887,7 @@ export default function ReportsPage({ startCollege, onBack }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {byCollege.map((row) => (
+                  {byCollege.map((row, index) => (
                     <tr
                       key={row.college}
                       className="report-click-row"
@@ -685,6 +903,9 @@ export default function ReportsPage({ startCollege, onBack }) {
                       }}
                     >
                       <td>
+                        <span className="report-rank">{index + 1}</span>
+                      </td>
+                      <td>
                         <strong>{row.college}</strong>
                       </td>
                       <td>{fmt(row.students)}</td>
@@ -696,14 +917,19 @@ export default function ReportsPage({ startCollege, onBack }) {
                       <td>
                         <strong>{fmt(row.verified)}</strong>
                       </td>
-                      <td>{fmt(row.hours)}</td>
+                      <td>
+                        <span className="report-cell-bar">
+                          <MiniBar value={row.hours} max={maxCollegeHours} tone="mini-bar--gold" />
+                          <span>{fmt(row.hours)}</span>
+                        </span>
+                      </td>
                       <td>
                         <span className="activity-link">View report →</span>
                       </td>
                     </tr>
                   ))}
                   {!byCollege.length && (
-                    <Empty cols={10} text="No college data for the selected filters." />
+                    <Empty cols={11} text="No college data for the selected filters." />
                   )}
                 </tbody>
               </table>
@@ -738,7 +964,12 @@ export default function ReportsPage({ startCollege, onBack }) {
                         <td>
                           <strong>{row.name || "Uncategorized"}</strong>
                         </td>
-                        <td>{fmt(row.activities)}</td>
+                        <td>
+                          <span className="report-cell-bar">
+                            <MiniBar value={row.activities} max={maxCategoryActivities} />
+                            <span>{fmt(row.activities)}</span>
+                          </span>
+                        </td>
                         <td>{fmt(row.participants)}</td>
                         <td>{fmt(row.hours)}</td>
                       </tr>
@@ -779,14 +1010,103 @@ export default function ReportsPage({ startCollege, onBack }) {
                         </td>
                         <td>{fmt(row.count)}</td>
                         <td>
-                          {statusTotal
-                            ? `${fmt((num(row.count) / statusTotal) * 100)}%`
-                            : "—"}
+                          <span className="report-cell-bar">
+                            <MiniBar value={row.count} max={statusTotal} tone="mini-bar--gold" />
+                            <span>{statusTotal ? `${fmt(pct(row.count, statusTotal))}%` : "—"}</span>
+                          </span>
                         </td>
                       </tr>
                     ))}
                     {!byStatus.length && (
                       <Empty cols={3} text="No statuses for the selected filters." />
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </Panel>
+          </div>
+
+          <div className="report-grid">
+            <Panel
+              eyebrow="SEMESTER BREAKDOWN"
+              title="Activities by semester"
+              sub="Grouped by the semester of each activity's date (June-November / December-May)."
+              action={
+                <ExportButton
+                  rows={bySemester}
+                  filename={`reports-${fileScope}-semesters.csv`}
+                />
+              }
+            >
+              <div className="tw">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>SEMESTER</th>
+                      <th>ACTIVITIES</th>
+                      <th>SHARE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bySemester.map((row) => (
+                      <tr key={row.name}>
+                        <td>
+                          <strong>{row.name}</strong>
+                        </td>
+                        <td>{fmt(row.count)}</td>
+                        <td>
+                          <span className="report-cell-bar">
+                            <MiniBar value={row.count} max={maxPeriodActivities} />
+                            <span>{kpis.activities ? `${fmt(pct(row.count, kpis.activities))}%` : "—"}</span>
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {!bySemester.length && (
+                      <Empty cols={3} text="No semesters for the selected filters." />
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </Panel>
+
+            <Panel
+              eyebrow="SCHOOL YEAR BREAKDOWN"
+              title="Activities by school year"
+              sub="A school year runs from June to May of the following year."
+              action={
+                <ExportButton
+                  rows={bySchoolYear}
+                  filename={`reports-${fileScope}-school-years.csv`}
+                />
+              }
+            >
+              <div className="tw">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>SCHOOL YEAR</th>
+                      <th>ACTIVITIES</th>
+                      <th>SHARE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bySchoolYear.map((row) => (
+                      <tr key={row.name}>
+                        <td>
+                          <strong>{row.name}</strong>
+                        </td>
+                        <td>{fmt(row.count)}</td>
+                        <td>
+                          <span className="report-cell-bar">
+                            <MiniBar value={row.count} max={maxPeriodActivities} tone="mini-bar--gold" />
+                            <span>{kpis.activities ? `${fmt(pct(row.count, kpis.activities))}%` : "—"}</span>
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {!bySchoolYear.length && (
+                      <Empty cols={3} text="No school years for the selected filters." />
                     )}
                   </tbody>
                 </table>

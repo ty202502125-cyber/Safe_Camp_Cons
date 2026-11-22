@@ -1,6 +1,6 @@
-export function Panel({ eyebrow, title, sub, action, children }) {
+export function Panel({ eyebrow, title, sub, action, children, className = "" }) {
   return (
-    <section className="card panel">
+    <section className={`card panel ${className}`.trim()}>
       <div className="ph">
         <div>
           <span className="eb">{eyebrow}</span>

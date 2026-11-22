@@ -34,6 +34,8 @@ const cacheKey = (query, college) =>
     to: query.to || null,
     category: query.category || null,
     status: query.status || null,
+    semester: query.semester || null,
+    schoolYear: query.schoolYear || null,
     asOf: query.asOf || null,
     excludeTest: query.excludeTest !== "false",
   });
@@ -58,6 +60,22 @@ const activityDateKey = (activity) =>
   typeof activity?.date === "string" && /^\d{4}-\d{2}-\d{2}/.test(activity.date)
     ? activity.date.slice(0, 10)
     : monthKey(activity?.date);
+
+// Academic periods are derived from the activity date: the first semester runs
+// June-November and the second December-May. A school year starts in June.
+const academicPeriod = (value) => {
+  if (!value) return { semester: "Unknown", schoolYear: "Unknown" };
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime()))
+    return { semester: "Unknown", schoolYear: "Unknown" };
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth() + 1;
+  const startYear = month >= 6 ? year : year - 1;
+  return {
+    semester: month >= 6 && month <= 11 ? "1st Semester" : "2nd Semester",
+    schoolYear: `${startYear}-${String(startYear + 1).slice(-2)}`,
+  };
+};
 
 const derivedStatus = (activity, now = new Date()) => {
   const status = activity?.status || "Unknown";
@@ -175,6 +193,11 @@ function matchesActivity(activity, filters) {
   if (filters.category && normalizeCategory(activity?.category) !== filters.category)
     return false;
   if (filters.status && derivedStatus(activity) !== filters.status) return false;
+  if (filters.semester || filters.schoolYear) {
+    const period = academicPeriod(activityDateKey(activity));
+    if (filters.semester && period.semester !== filters.semester) return false;
+    if (filters.schoolYear && period.schoolYear !== filters.schoolYear) return false;
+  }
   return true;
 }
 
@@ -298,6 +321,7 @@ async function buildReport(query, forcedCollege) {
         college: colleges.join(", "),
         category: normalizeCategory(activity.category),
         effectiveStatus: derivedStatus(activity, useEvents ? asOf : now),
+        ...academicPeriod(activityDateKey(activity)),
       };
     });
 
@@ -511,6 +535,12 @@ async function buildReport(query, forcedCollege) {
   }
 
   const byStatus = countBy(scopedActivities, (activity) => activity.effectiveStatus);
+  const bySemester = countBy(scopedActivities, (activity) => activity.semester).sort(
+    (a, b) => a.name.localeCompare(b.name),
+  );
+  const bySchoolYear = countBy(scopedActivities, (activity) => activity.schoolYear).sort(
+    (a, b) => b.name.localeCompare(a.name),
+  );
 
   const allCollegeRows = new Map();
   const ensureCollegeRow = (college) => {
@@ -578,6 +608,8 @@ async function buildReport(query, forcedCollege) {
         college: activity.college,
         category: activity.category,
         date: activity.date,
+        semester: activity.semester,
+        schoolYear: activity.schoolYear,
         status: activity.effectiveStatus,
         slots: Number(activity.slots || 0),
         requested: rows.length,
@@ -600,6 +632,7 @@ async function buildReport(query, forcedCollege) {
   const start = await historyStart();
   const notes = [
     "Hours count only attendance that an Admin has verified.",
+    "School year starts in June: 1st Semester is June-November, 2nd Semester is December-May. Periods are derived from each activity's date.",
     `Event history tracking started ${start ? new Date(start).toLocaleString() : "recently"}; earlier transitions cannot be reconstructed. Existing records contribute their initial state at that time.`,
   ];
   if (excludeTest)
@@ -618,12 +651,20 @@ async function buildReport(query, forcedCollege) {
       to: query.to || null,
       category: query.category || null,
       status: query.status || null,
+      semester: query.semester || null,
+      schoolYear: query.schoolYear || null,
       college: forcedCollege || query.college || null,
       excludeTest,
     },
     kpis,
     series: { activitiesByMonth, enrollmentsByMonth, hoursByMonth, pendingByMonth },
-    breakdowns: { byCategory: [...byCategoryMap.values()], byStatus, byCollege },
+    breakdowns: {
+      byCategory: [...byCategoryMap.values()],
+      byStatus,
+      byCollege,
+      bySemester,
+      bySchoolYear,
+    },
     topActivities,
     notes,
   };
