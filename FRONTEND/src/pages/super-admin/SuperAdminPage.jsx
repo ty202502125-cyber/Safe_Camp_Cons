@@ -28,15 +28,12 @@ export function SuperAdminPage({ d, start }) {
   } = d;
   const [page, setPage] = useState(start || "Overview");
   const [openOrgAction, setOpenOrgAction] = useState(null);
-<<<<<<< HEAD
   const [openAdminAction, setOpenAdminAction] = useState(null);
-=======
   const [creatingAdmin, setCreatingAdmin] = useState(false);
   const [temporaryPassword, setTemporaryPassword] = useState("");
   const [showTemporaryPassword, setShowTemporaryPassword] = useState(false);
   const [createdAdmin, setCreatedAdmin] = useState(null);
   const [resendingEmail, setResendingEmail] = useState(false);
->>>>>>> pals_gen_pass
   const admins = users.filter((u) => u.role === "Admin"),
     students = users.filter((u) => u.role === "User");
   // An organization stays assigned while its Admin is inactive; deleting that account frees it.
@@ -233,19 +230,14 @@ export function SuperAdminPage({ d, start }) {
       )
     )
       return;
-<<<<<<< HEAD
-    setUsers(users.filter((u) => u.id !== id));
-    setOpenAdminAction(null);
-    setOpenOrgAction(null);
-=======
     try {
       await removeUser(id);
     } catch (error) {
-      flash(error.message, true
+      flash(error.message, true);
       return;
     }
-    setAdminDeactivationChoice(null);
->>>>>>> pals_gen_pass
+    setOpenAdminAction(null);
+    setOpenOrgAction(null);
     const anotherActiveAdmin = users.some(
       (u) =>
         u.id !== id &&
