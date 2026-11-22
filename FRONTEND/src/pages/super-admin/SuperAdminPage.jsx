@@ -327,7 +327,7 @@ export function SuperAdminPage({ d, start }) {
                 <tr>
                   <th>ORGANIZATION</th>
                   <th>TYPE</th>
-                  <th>ADMIN ACCOUNTS</th>
+                  <th>ADMIN STATUS</th>
                   <th>STATUS</th>
                   <th>ACTION</th>
                 </tr>
@@ -343,7 +343,23 @@ export function SuperAdminPage({ d, start }) {
                         <strong>{org.name}</strong>
                       </td>
                       <td>{org.type}</td>
-                      <td>{orgAdmins.length}</td>
+                      <td>
+                        {orgAdmins.length ? (
+                          <>
+                            <span className="bd ok">Assigned</span>
+                            <small>
+                              {fullName(orgAdmins[0])}
+                              {orgAdmins[0].status !== "Active" &&
+                                " · inactive"}
+                            </small>
+                          </>
+                        ) : (
+                          <>
+                            <span className="bd no">Unassigned</span>
+                            <small>Needs an Admin account</small>
+                          </>
+                        )}
+                      </td>
                       <td>
                         <Badge
                           s={org.status === "Active" ? "Open" : "Rejected"}
@@ -454,7 +470,7 @@ export function SuperAdminPage({ d, start }) {
         <Panel
           eyebrow="SUPER ADMIN CONSOLE"
           title="Admin accounts"
-          sub="Each college or office can have one Admin account. A random temporary password is shown here once and emailed to the Admin, who must change it at first sign-in. Deactivating suspends access but keeps the organization assigned; deleting the account makes it available again."
+          sub="Each college or office can have one Admin account. The Students column shows how many students are registered under that Admin’s college or office. A random temporary password is shown here once and emailed to the Admin, who must change it at first sign-in. Deactivating suspends access but keeps the organization assigned; deleting the account makes it available again."
         >
           <form className="form" onSubmit={addAdmin}>
             <label>
@@ -602,19 +618,35 @@ export function SuperAdminPage({ d, start }) {
                 <tr>
                   <th>ADMIN</th>
                   <th>COLLEGE / OFFICE</th>
+                  <th>STUDENTS</th>
                   <th>ACTIVITIES</th>
                   <th>STATUS</th>
                   <th>ACCOUNT ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
-                {admins.map((u) => (
+                {admins.map((u) => {
+                  const managedStudents = students.filter(
+                    (student) => student.college === u.college,
+                  );
+                  return (
                   <tr key={u.id}>
                     <td>
                       <strong>{fullName(u)}</strong>
                       <small>{u.email}</small>
                     </td>
                     <td>{u.college}</td>
+                    <td>
+                      <strong>{managedStudents.length}</strong>
+                      <small>
+                        {
+                          managedStudents.filter(
+                            (student) => student.status === "Active",
+                          ).length
+                        }{" "}
+                        active
+                      </small>
+                    </td>
                     <td>{acts.filter((a) => a.by === u.id).length}</td>
                     <td>
                       <Badge s={u.status === "Active" ? "Open" : "Rejected"} />
@@ -672,9 +704,10 @@ export function SuperAdminPage({ d, start }) {
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
                 {admins.length === 0 && (
-                  <Empty cols={5} text="No admin accounts yet." />
+                  <Empty cols={6} text="No admin accounts yet." />
                 )}
               </tbody>
             </table>
