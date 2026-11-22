@@ -61,6 +61,15 @@ export function StudentPage({ d, start }) {
       !hasActivityEnded(a, clockNow) &&
       canAccessActivity(a),
   );
+  const mandatoryVisible = visible.filter((a) => a.mandatory);
+  const requirementStatus = (activity) => {
+    const enrollment = mine.find((e) => e.actId === activity.id);
+    if (!enrollment) return "Not enrolled";
+    if (enrollment.status === "Pending") return "Pending approval";
+    if (enrollment.status === "Declined") return "Request declined";
+    if (!enrollment.attended) return "Not attended yet";
+    return enrollment.verified ? "Completed" : "Awaiting verification";
+  };
   const logged = mine.filter((e) => e.attended);
   const total = logged.reduce((s, e) => s + Number(e.hours || 0), 0);
   const done = (e) => {
@@ -237,6 +246,7 @@ export function StudentPage({ d, start }) {
           {[
             "Home",
             "Activities",
+            "Mandatory",
             "My Enrollments",
             "Hours & Certificate",
             "My Profile",
@@ -337,6 +347,58 @@ export function StudentPage({ d, start }) {
             {list.length === 0 && (
               <p className="note">No activities match your filters.</p>
             )}
+          </Panel>
+        )}
+        {page === "Mandatory" && (
+          <Panel
+            eyebrow="REQUIRED PARTICIPATION"
+            title="Mandatory activities"
+            sub="These activities are required for students in your college. Enroll, attend, and log your hours to complete them."
+          >
+            <div className="tw">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ACTIVITY</th>
+                    <th>SCHEDULE</th>
+                    <th>REQUIREMENT</th>
+                    <th>ACTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mandatoryVisible.map((a) => (
+                    <tr key={a.id}>
+                      <td>
+                        <strong>{a.title}</strong>
+                        <small>{a.category}</small>
+                      </td>
+                      <td>
+                        {fmtDate(a.date)} · {timeRange(a)}
+                        <small>{a.location}</small>
+                      </td>
+                      <td>
+                        <Badge s={requirementStatus(a)} />
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="tb"
+                          onClick={() => setSelectedActivity(a)}
+                        >
+                          View details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {mandatoryVisible.length === 0 && (
+                    <Empty
+                      cols={4}
+                      text="No mandatory activities are open to you right now."
+                    />
+                  )}
+                </tbody>
+              </table>
+            </div>
           </Panel>
         )}
         {page === "My Enrollments" && (

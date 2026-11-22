@@ -6,6 +6,10 @@ import {
   Badge,
   accepted,
   hoursOf,
+  nid,
+  activeAcademicYear,
+  isArchivedActivity,
+  periodLabel,
   Panel,
   Empty,
   Shell,
@@ -13,6 +17,7 @@ import {
 } from "../../shared/appCommon.jsx";
 
 const ReportsPage = lazy(() => import("./ReportsPage.jsx"));
+const isoNow = () => new Date().toISOString();
 
 export function SuperAdminPage({ d, start }) {
   const {
@@ -27,8 +32,17 @@ export function SuperAdminPage({ d, start }) {
     flash,
     organizations,
     setOrganizations,
+    academicYears,
+    setAcademicYears,
   } = d;
   const [page, setPage] = useState(start || "Overview");
+  const [yearForm, setYearForm] = useState(() => {
+    const year = new Date().getUTCFullYear();
+    return {
+      year: `${year}-${String(year + 1).slice(-2)}`,
+      semester: "1st Semester",
+    };
+  });
   const [openOrgAction, setOpenOrgAction] = useState(null);
   const [openAdminAction, setOpenAdminAction] = useState(null);
   const [creatingAdmin, setCreatingAdmin] = useState(false);
@@ -38,6 +52,7 @@ export function SuperAdminPage({ d, start }) {
   const [resendingEmail, setResendingEmail] = useState(false);
   const admins = users.filter((u) => u.role === "Admin"),
     students = users.filter((u) => u.role === "User");
+  const activeYear = activeAcademicYear(academicYears);
   // An organization stays assigned while its Admin is inactive; deleting that account frees it.
   const assignedOrganizations = new Set(admins.map((admin) => admin.college));
   const availableOrganizations = organizations.filter(
@@ -50,13 +65,122 @@ export function SuperAdminPage({ d, start }) {
     .reduce((s, e) => s + Number(e.hours || 0), 0);
 
   function decide(id, status) {
-    setActs(acts.map((a) => (a.id === id ? { ...a, status } : a)));
+    const activity = acts.find((a) => a.id === id);
+    if (isArchivedActivity(activity, academicYears))
+      return flash("Archived academic years are read-only.", true);
+    setActs(
+      acts.map((a) =>
+        a.id === id
+          ? {
+              ...a,
+              status,
+              schoolYear: a.schoolYear || activeYear?.year,
+              semester: a.semester || activeYear?.semester,
+            }
+          : a,
+      ),
+    );
     flash(
       status === "Open"
         ? "Activity approved and published to students."
         : "Activity request rejected.",
       status !== "Open",
     );
+  }
+  function toggleMandatory(activity) {
+    if (isArchivedActivity(activity, academicYears))
+      return flash("Archived academic years are read-only.", true);
+    setActs(
+      acts.map((a) =>
+        a.id === activity.id ? { ...a, mandatory: !a.mandatory } : a,
+      ),
+    );
+    flash(
+      activity.mandatory
+        ? "Activity is no longer mandatory."
+        : "Activity marked mandatory — students must attend.",
+    );
+  }
+  function saveAcademicYear(e) {
+    e.preventDefault();
+    const year = yearForm.year.trim();
+    if (!/^\d{4}-\d{2}$/.test(year))
+      return flash("Use the YYYY-YY format, for example 2026-27.", true);
+    if (academicYears.some((item) => item.year === year))
+      return flash(`${year} already exists in the academic year list.`, true);
+    const now = isoNow();
+    setAcademicYears([
+      ...academicYears.map((item) =>
+        item.status === "Active"
+          ? { ...item, status: "Archived", archivedAt: now }
+          : item,
+      ),
+      {
+        id: nid(academicYears),
+        year,
+        semester: yearForm.semester,
+        status: "Active",
+        createdAt: now,
+      },
+    ]);
+    flash(`${year} (${yearForm.semester}) is now the active academic period.`);
+  }
+  function archiveAcademicYear(year) {
+    if (
+      !window.confirm(
+        `Archive ${year.year}? Its activities become read-only and remain available in Reports.`,
+      )
+    )
+      return;
+    setAcademicYears(
+      academicYears.map((item) =>
+        item.id === year.id
+          ? { ...item, status: "Archived", archivedAt: isoNow() }
+          : item,
+      ),
+    );
+    flash(`${year.year} archived. Set a new academic year to publish activities.`);
+  }
+  function activateAcademicYear(year) {
+    const now = isoNow();
+    setAcademicYears(
+      academicYears.map((item) =>
+        item.id === year.id
+          ? { ...item, status: "Active", archivedAt: undefined }
+          : item.status === "Active"
+            ? { ...item, status: "Archived", archivedAt: now }
+            : item,
+      ),
+    );
+    flash(`${year.year} is active again. The previous year was archived.`);
+  }
+  function changeSemester(value) {
+    if (!activeYear) return;
+    setAcademicYears(
+      academicYears.map((item) =>
+        item.id === activeYear.id ? { ...item, semester: value } : item,
+      ),
+    );
+    flash(`Current semester set to ${value}. New activities will use it.`);
+  }
+  function assignLegacyPeriods() {
+    if (!activeYear) return;
+    const count = acts.filter((a) => !a.schoolYear).length;
+    if (!count) return flash("Every activity already has an academic period.");
+    if (
+      !window.confirm(
+        `Assign ${count} older activity ${count === 1 ? "" : "ies"} to ${activeYear.year} (${activeYear.semester})?`,
+      )
+    )
+      return;
+    setActs(
+      acts.map((a) =>
+        a.schoolYear
+          ? a
+          : { ...a, schoolYear: activeYear.year, semester: activeYear.semester },
+      ),
+    );
+    flash(`${count} activities assigned to ${activeYear.year}.`);
   }
   function generateTemporaryPassword() {
     const alphabet =
@@ -264,6 +388,7 @@ export function SuperAdminPage({ d, start }) {
       nav={[
         ["Overview"],
         ["Approvals", pending.length],
+        ["Academic Years"],
         ["Colleges & Offices"],
         ["Admin Accounts"],
         ["Monitoring"],
@@ -282,6 +407,7 @@ export function SuperAdminPage({ d, start }) {
           totalHours={totalHours}
           onNavigate={setPage}
           onDecide={decide}
+          onToggleMandatory={toggleMandatory}
         />
       )}
       {page === "Approvals" && (
@@ -294,8 +420,149 @@ export function SuperAdminPage({ d, start }) {
             list={pending}
             users={users}
             onDecide={decide}
+            onToggleMandatory={toggleMandatory}
           />
         </Panel>
+      )}
+      {page === "Academic Years" && (
+        <>
+          <Panel
+            eyebrow="ACADEMIC SETUP"
+            title="Academic years & semesters"
+            sub="Set the period that new activities belong to. When a year is done, archive it — its activities become read-only but stay in Reports."
+          >
+            <div className="ay-current">
+              <div>
+                <span className="eb">CURRENT PERIOD</span>
+                <h3>
+                  {activeYear
+                    ? `${activeYear.year} · ${activeYear.semester}`
+                    : "No active academic year"}
+                </h3>
+                <p>
+                  {activeYear
+                    ? "New activities are stamped with this year and semester. Changing the semester here does not move existing activities."
+                    : "Set an academic year before offices submit new activities."}
+                </p>
+              </div>
+              {activeYear && (
+                <label>
+                  Current semester
+                  <select
+                    value={activeYear.semester}
+                    onChange={(e) => changeSemester(e.target.value)}
+                  >
+                    <option>1st Semester</option>
+                    <option>2nd Semester</option>
+                  </select>
+                </label>
+              )}
+            </div>
+            <form className="form" onSubmit={saveAcademicYear}>
+              <label>
+                School year
+                <input
+                  value={yearForm.year}
+                  onChange={(e) =>
+                    setYearForm({ ...yearForm, year: e.target.value })
+                  }
+                  placeholder="2026-27"
+                  required
+                />
+              </label>
+              <label>
+                Semester
+                <select
+                  value={yearForm.semester}
+                  onChange={(e) =>
+                    setYearForm({ ...yearForm, semester: e.target.value })
+                  }
+                >
+                  <option>1st Semester</option>
+                  <option>2nd Semester</option>
+                </select>
+              </label>
+              <button className="btn sm" type="submit">
+                {activeYear ? "Set new active year" : "Set active year"}
+              </button>
+            </form>
+            <p className="note">
+              Setting a new active year automatically archives the current one.
+            </p>
+            {activeYear && (
+              <button
+                type="button"
+                className="tb"
+                onClick={assignLegacyPeriods}
+              >
+                Assign this period to older activities
+              </button>
+            )}
+          </Panel>
+          <Panel
+            eyebrow="HISTORY"
+            title="Academic year archive"
+            sub="Archived years are read-only and still available in Reports and Analytics."
+          >
+            <div className="tw">
+              <table>
+                <thead>
+                  <tr>
+                    <th>SCHOOL YEAR</th>
+                    <th>SEMESTER</th>
+                    <th>STATUS</th>
+                    <th>SET ON</th>
+                    <th>ARCHIVED ON</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {academicYears
+                    .slice()
+                    .sort((a, b) => b.year.localeCompare(a.year))
+                    .map((year) => (
+                      <tr key={year.id}>
+                        <td>
+                          <strong>{year.year}</strong>
+                        </td>
+                        <td>{year.semester}</td>
+                        <td>
+                          <Badge s={year.status} />
+                        </td>
+                        <td>{year.createdAt ? fmtDate(year.createdAt) : "—"}</td>
+                        <td>{year.archivedAt ? fmtDate(year.archivedAt) : "—"}</td>
+                        <td>
+                          {year.status === "Active" ? (
+                            <button
+                              type="button"
+                              className="tb bad"
+                              onClick={() => archiveAcademicYear(year)}
+                            >
+                              Archive
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="tb"
+                              onClick={() => activateAcademicYear(year)}
+                            >
+                              Set active
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  {academicYears.length === 0 && (
+                    <Empty
+                      cols={6}
+                      text="No academic years set yet. Use the form above to start one."
+                    />
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
+        </>
       )}
       {page === "Colleges & Offices" && (
         <Panel
@@ -721,48 +988,79 @@ export function SuperAdminPage({ d, start }) {
         <Panel
           eyebrow="LIVE MONITORING"
           title="All volunteer activities"
-          sub="Track status, enrollment and attendance for every office."
+          sub="Track status, enrollment and attendance for every office. Mark an activity mandatory to require student participation."
         >
           <div className="tw">
             <table>
               <thead>
                 <tr>
                   <th>ACTIVITY</th>
+                  <th>PERIOD</th>
                   <th>OFFICE</th>
                   <th>DATE</th>
                   <th>ENROLLED</th>
-                  <th>REQUESTS</th>
+                  <th>REQUIRED</th>
                   <th>ATTENDED</th>
                   <th>STATUS</th>
+                  <th>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
-                {acts.map((a) => (
-                  <tr key={a.id}>
-                    <td>
-                      <strong>{a.title}</strong>
-                      <small>{a.category}</small>
-                    </td>
-                    <td>{owner(a)?.college}</td>
-                    <td>{fmtDate(a.date)}</td>
-                    <td>
-                      {accepted(enr, a)} / {a.slots}
-                    </td>
-                    <td>
-                      {
-                        enr.filter(
-                          (e) => e.actId === a.id && e.status === "Pending",
-                        ).length
-                      }
-                    </td>
-                    <td>
-                      {enr.filter((e) => e.actId === a.id && e.attended).length}
-                    </td>
-                    <td>
-                      <Badge s={a.status} />
-                    </td>
-                  </tr>
-                ))}
+                {acts.map((a) => {
+                  const eligible = students.filter(
+                    (student) =>
+                      !a.colleges?.length || a.colleges.includes(student.college),
+                  );
+                  const completed = enr.filter(
+                    (e) => e.actId === a.id && e.attended && e.verified,
+                  ).length;
+                  const locked = isArchivedActivity(a, academicYears);
+                  return (
+                    <tr key={a.id}>
+                      <td>
+                        <strong>{a.title}</strong>
+                        <small>{a.category}</small>
+                      </td>
+                      <td>{periodLabel(a)}</td>
+                      <td>{owner(a)?.college}</td>
+                      <td>{fmtDate(a.date)}</td>
+                      <td>
+                        {accepted(enr, a)} / {a.slots}
+                      </td>
+                      <td>
+                        {a.mandatory ? (
+                          <Badge s="Mandatory" />
+                        ) : (
+                          <small>Optional</small>
+                        )}
+                        {a.mandatory && (
+                          <small>
+                            {completed} / {eligible.length} completed
+                          </small>
+                        )}
+                      </td>
+                      <td>
+                        {enr.filter((e) => e.actId === a.id && e.attended).length}
+                      </td>
+                      <td>
+                        <Badge s={a.status} />
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="tb"
+                          disabled={locked}
+                          title={
+                            locked ? "Archived academic years are read-only" : ""
+                          }
+                          onClick={() => toggleMandatory(a)}
+                        >
+                          {a.mandatory ? "Make optional" : "Mark mandatory"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -780,7 +1078,7 @@ export function SuperAdminPage({ d, start }) {
             </Panel>
           }
         >
-          <ReportsPage />
+          <ReportsPage academicYears={academicYears} />
         </Suspense>
       )}
       {page === "Students" && (

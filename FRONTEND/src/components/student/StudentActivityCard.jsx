@@ -35,6 +35,7 @@ export default function StudentActivityCard({
         aria-label={`View ${activity.title} details`}
       >
         <Badge s={activityStatus(activity, clockNow)} />
+        {activity.mandatory && <Badge s="Mandatory" />}
       </button>
       <div className="abody">
         <span className="eb">{activity.category}</span>

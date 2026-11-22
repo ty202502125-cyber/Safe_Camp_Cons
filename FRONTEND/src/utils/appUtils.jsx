@@ -68,12 +68,15 @@ export const activityStatus = (a, now = new Date()) =>
     ? "Completed"
     : a?.status;
 export const BCLS = {
+  Active: "ok",
+  Archived: "gold",
   Open: "ok",
   Accepted: "ok",
   Completed: "ok",
   Verified: "ok",
   Ongoing: "gold",
   Pending: "gold",
+  Mandatory: "mand",
   Logged: "gold",
   Rejected: "no",
   Declined: "no",
@@ -83,6 +86,23 @@ export const Badge = ({ s }) => (
 );
 export const accepted = (enr, a) =>
   enr.filter((e) => e.actId === a.id && e.status === "Accepted").length;
+
+export const activeAcademicYear = (years = []) =>
+  years.find((year) => year.status === "Active") || null;
+
+export const isArchivedActivity = (activity, years = []) =>
+  Boolean(
+    activity?.schoolYear &&
+      years.some(
+        (year) =>
+          year.year === activity.schoolYear && year.status === "Archived",
+      ),
+  );
+
+export const periodLabel = (activity) =>
+  activity?.schoolYear
+    ? `${activity.schoolYear} · ${activity.semester || "Semester not set"}`
+    : "Period not set";
 export const hoursOf = (enr, uid) =>
   enr
     .filter((e) => e.userId === uid && e.attended)

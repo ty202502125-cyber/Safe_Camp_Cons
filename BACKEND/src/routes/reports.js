@@ -15,6 +15,7 @@ router.use(
 );
 
 const CACHE_TTL_MS = 30_000;
+const SEMESTERS = new Set(["1st Semester", "2nd Semester"]);
 const reportCache = new Map();
 
 async function cachedReport(key, build) {
@@ -61,9 +62,10 @@ const activityDateKey = (activity) =>
     ? activity.date.slice(0, 10)
     : monthKey(activity?.date);
 
-// Academic periods are derived from the activity date: the first semester runs
-// June-November and the second December-May. A school year starts in June.
-const academicPeriod = (value) => {
+// Activities carry the academic year and semester that were active when they
+// were created. Older records without those fields fall back to their date so
+// historical reports stay useful.
+const periodFromDate = (value) => {
   if (!value) return { semester: "Unknown", schoolYear: "Unknown" };
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime()))
@@ -74,6 +76,22 @@ const academicPeriod = (value) => {
   return {
     semester: month >= 6 && month <= 11 ? "1st Semester" : "2nd Semester",
     schoolYear: `${startYear}-${String(startYear + 1).slice(-2)}`,
+  };
+};
+
+const academicPeriod = (activity) => {
+  if (!activity) return { semester: "Unknown", schoolYear: "Unknown" };
+  const fallback = periodFromDate(activityDateKey(activity));
+  return {
+    semester:
+      activity.semester && SEMESTERS.has(activity.semester)
+        ? activity.semester
+        : fallback.semester,
+    schoolYear:
+      typeof activity.schoolYear === "string" &&
+      /^\d{4}-\d{2}$/.test(activity.schoolYear)
+        ? activity.schoolYear
+        : fallback.schoolYear,
   };
 };
 
@@ -194,7 +212,7 @@ function matchesActivity(activity, filters) {
     return false;
   if (filters.status && derivedStatus(activity) !== filters.status) return false;
   if (filters.semester || filters.schoolYear) {
-    const period = academicPeriod(activityDateKey(activity));
+    const period = academicPeriod(activity);
     if (filters.semester && period.semester !== filters.semester) return false;
     if (filters.schoolYear && period.schoolYear !== filters.schoolYear) return false;
   }
@@ -321,7 +339,7 @@ async function buildReport(query, forcedCollege) {
         college: colleges.join(", "),
         category: normalizeCategory(activity.category),
         effectiveStatus: derivedStatus(activity, useEvents ? asOf : now),
-        ...academicPeriod(activityDateKey(activity)),
+        ...academicPeriod(activity),
       };
     });
 
@@ -632,7 +650,7 @@ async function buildReport(query, forcedCollege) {
   const start = await historyStart();
   const notes = [
     "Hours count only attendance that an Admin has verified.",
-    "School year starts in June: 1st Semester is June-November, 2nd Semester is December-May. Periods are derived from each activity's date.",
+    "Activities use the academic year and semester set by the Super Admin. Older activities without a set period fall back to their date (June-November = 1st Semester, December-May = 2nd Semester; school year starts in June).",
     `Event history tracking started ${start ? new Date(start).toLocaleString() : "recently"}; earlier transitions cannot be reconstructed. Existing records contribute their initial state at that time.`,
   ];
   if (excludeTest)

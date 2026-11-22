@@ -15,6 +15,9 @@ import {
   accepted,
   hoursOf,
   collegeHasActiveAdmin,
+  activeAcademicYear,
+  isArchivedActivity,
+  periodLabel,
   ActivityDetails,
   Panel,
   Empty,
@@ -34,6 +37,7 @@ const blank = {
   slots: 20,
   colleges: [...COLLEGES],
   image: "",
+  mandatory: false,
 };
 export function AdminPage({ d, start }) {
   const {
@@ -47,6 +51,7 @@ export function AdminPage({ d, start }) {
     flash,
     me,
     organizations,
+    academicYears,
   } = d;
   const [page, setPage] = useState(start || "Dashboard");
   const [studentDeactivationChoice, setStudentDeactivationChoice] =
@@ -68,6 +73,7 @@ export function AdminPage({ d, start }) {
         .filter(
           (activity) =>
             activity.by === me.id &&
+            !isArchivedActivity(activity, academicYears) &&
             ["Open", "Ongoing"].includes(activity.status) &&
             hasActivityEnded(activity, clockNow),
         )
@@ -81,12 +87,14 @@ export function AdminPage({ d, start }) {
             : activity,
         ),
       );
-  }, [acts, clockNow, me.id, setActs]);
+  }, [acts, academicYears, clockNow, me.id, setActs]);
   const collegeOptions = organizations
     .filter((org) => collegeHasActiveAdmin(org.name, users, organizations))
     .map((org) => org.name);
   const assignedCollege = collegeOptions.includes(me.college) ? me.college : "";
   const mine = acts.filter((a) => a.by === me.id);
+  const activeYear = activeAcademicYear(academicYears);
+  const isLocked = (activity) => isArchivedActivity(activity, academicYears);
   const myEnr = enr.filter((e) => mine.some((a) => a.id === e.actId));
   const collegeStudents = users.filter(
     (u) => u.role === "User" && u.college === me.college,
@@ -101,6 +109,20 @@ export function AdminPage({ d, start }) {
         f.toLowerCase().includes(q.trim().toLowerCase()),
       ),
   );
+  const mandatoryMine = mine.filter(
+    (a) =>
+      a.mandatory &&
+      ["Open", "Ongoing", "Completed"].includes(statusOf(a)),
+  );
+  const eligibleStudents = (activity) =>
+    collegeStudents.filter(
+      (student) =>
+        !activity.colleges?.length || activity.colleges.includes(student.college),
+    );
+  const completedCount = (activity) =>
+    enr.filter(
+      (e) => e.actId === activity.id && e.attended && e.verified,
+    ).length;
   async function toggleStudent(id) {
     const student = users.find((user) => user.id === id);
     if (!student) return;
@@ -167,6 +189,13 @@ export function AdminPage({ d, start }) {
 
   function save(e) {
     e.preventDefault();
+    if (editId && isLocked(acts.find((a) => a.id === editId)))
+      return flash("Archived academic years are read-only.", true);
+    if (!editId && !activeYear)
+      return flash(
+        "Ask the Super Admin to set an academic year and semester first.",
+        true,
+      );
     if (
       !form.title.trim() ||
       !form.date ||
@@ -201,7 +230,12 @@ export function AdminPage({ d, start }) {
       location: form.location.trim(),
       hours: Number(form.hours) || 1,
       slots: Number(form.slots) || 1,
+      mandatory: Boolean(form.mandatory),
     };
+    if (!editId) {
+      data.schoolYear = activeYear.year;
+      data.semester = activeYear.semester;
+    }
     if (editId) {
       setActs(
         acts.map((a) =>
@@ -226,6 +260,8 @@ export function AdminPage({ d, start }) {
     setEditId(null);
   }
   function remove(a) {
+    if (isLocked(a))
+      return flash("Archived academic years are read-only.", true);
     if (
       !window.confirm(`Delete “${a.title}”? Enrollments will be removed too.`)
     )
@@ -235,11 +271,15 @@ export function AdminPage({ d, start }) {
     flash("Activity deleted.");
   }
   const setStatus = (a, status) => {
+    if (isLocked(a))
+      return flash("Archived academic years are read-only.", true);
     setActs(acts.map((x) => (x.id === a.id ? { ...x, status } : x)));
     flash(`Activity marked ${status.toLowerCase()}.`);
   };
   function respond(e, status) {
     const a = act(e.actId);
+    if (isLocked(a))
+      return flash("Archived academic years are read-only.", true);
     if (status === "Accepted" && hasActivityEnded(a, clockNow))
       return flash(
         "This activity has ended, so new participation requests can’t be approved.",
@@ -251,6 +291,8 @@ export function AdminPage({ d, start }) {
     flash(`Request ${status.toLowerCase()}.`, status === "Declined");
   }
   const verify = (e) => {
+    if (isLocked(act(e.actId)))
+      return flash("Archived academic years are read-only.", true);
     setEnr(
       enr.map((x) =>
         x.id === e.id
@@ -266,6 +308,8 @@ export function AdminPage({ d, start }) {
     flash("Attendance verified.");
   };
   const rejectLog = (e) => {
+    if (isLocked(act(e.actId)))
+      return flash("Archived academic years are read-only.", true);
     setEnr(
       enr.map((x) =>
         x.id === e.id
@@ -293,6 +337,7 @@ export function AdminPage({ d, start }) {
       nav={[
         ["Dashboard"],
         ["My Activities"],
+        ["Mandatory", mandatoryMine.length],
         ["Requests", reqs.length],
         ["Attendance & Hours"],
         ["Student Accounts"],
@@ -451,6 +496,26 @@ export function AdminPage({ d, start }) {
                   any detail below, then save.
                 </div>
               )}
+              <p className="note">
+                Academic period:{" "}
+                <strong>
+                  {editId
+                    ? periodLabel(acts.find((a) => a.id === editId))
+                    : activeYear
+                      ? `${activeYear.year} · ${activeYear.semester}`
+                      : "Not set by the Super Admin yet"}
+                </strong>
+              </p>
+              <label className="w check">
+                <input
+                  type="checkbox"
+                  checked={Boolean(form.mandatory)}
+                  onChange={(e) =>
+                    setForm({ ...form, mandatory: e.target.checked })
+                  }
+                />
+                Mandatory activity — students are required to attend
+              </label>
               <label className="w">
                 Title
                 <input
@@ -599,95 +664,198 @@ export function AdminPage({ d, start }) {
               <thead>
                 <tr>
                   <th>ACTIVITY</th>
+                  <th>PERIOD</th>
                   <th>SCHEDULE</th>
                   <th>HOURS</th>
                   <th>ENROLLED</th>
+                  <th>REQUIRED</th>
                   <th>STATUS</th>
                   <th>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
-                {shown.map((a) => (
-                  <tr key={a.id}>
-                    <td>
-                      <button
-                        type="button"
-                        className="activity-link"
-                        onClick={() => setSelectedActivity(a)}
-                      >
-                        <strong>{a.title}</strong>
-                      </button>
-                      <small>{a.category}</small>
-                    </td>
-                    <td>
-                      {fmtDate(a.date)} · {timeRange(a)}
-                      <small>{a.location}</small>
-                    </td>
-                    <td>{a.hours} h</td>
-                    <td>
-                      {accepted(enr, a)} / {a.slots}
-                    </td>
-                    <td>
-                      <Badge s={statusOf(a)} />
-                    </td>
-                    <td>
-                      {statusOf(a) === "Open" && (
+                {shown.map((a) => {
+                  const locked = isLocked(a);
+                  return (
+                    <tr key={a.id}>
+                      <td>
+                        <button
+                          type="button"
+                          className="activity-link"
+                          onClick={() => setSelectedActivity(a)}
+                        >
+                          <strong>{a.title}</strong>
+                        </button>
+                        <small>{a.category}</small>
+                      </td>
+                      <td>
+                        {periodLabel(a)}
+                        {locked && <small>Archived — read-only</small>}
+                      </td>
+                      <td>
+                        {fmtDate(a.date)} · {timeRange(a)}
+                        <small>{a.location}</small>
+                      </td>
+                      <td>{a.hours} h</td>
+                      <td>
+                        {accepted(enr, a)} / {a.slots}
+                      </td>
+                      <td>
+                        {a.mandatory ? (
+                          <Badge s="Mandatory" />
+                        ) : (
+                          <small>Optional</small>
+                        )}
+                        {a.mandatory && (
+                          <small>
+                            {completedCount(a)} / {eligibleStudents(a).length}{" "}
+                            completed
+                          </small>
+                        )}
+                      </td>
+                      <td>
+                        <Badge s={statusOf(a)} />
+                      </td>
+                      <td>
+                        {statusOf(a) === "Open" && (
+                          <button
+                            type="button"
+                            className="tb"
+                            disabled={locked}
+                            onClick={() => setStatus(a, "Ongoing")}
+                          >
+                            Start
+                          </button>
+                        )}
+                        {statusOf(a) === "Ongoing" && (
+                          <button
+                            type="button"
+                            className="tb"
+                            disabled={locked}
+                            onClick={() => setStatus(a, "Completed")}
+                          >
+                            Complete
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="tb"
-                          onClick={() => setStatus(a, "Ongoing")}
+                          disabled={locked}
+                          onClick={() => {
+                            setForm({
+                              title: a.title,
+                              desc: a.desc,
+                              category: a.category,
+                              date: a.date,
+                              time: a.time,
+                              endTime: a.endTime || "",
+                              location: a.location,
+                              hours: a.hours,
+                              slots: a.slots,
+                              colleges: a.colleges?.length
+                                ? a.colleges.filter((college) =>
+                                    collegeOptions.includes(college),
+                                  )
+                                : [...collegeOptions],
+                              image: a.image || "",
+                              mandatory: Boolean(a.mandatory),
+                            });
+                            setEditId(a.id);
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
                         >
-                          Start
+                          Edit
                         </button>
-                      )}
-                      {statusOf(a) === "Ongoing" && (
                         <button
                           type="button"
-                          className="tb"
-                          onClick={() => setStatus(a, "Completed")}
+                          className="tb bad"
+                          disabled={locked}
+                          onClick={() => remove(a)}
                         >
-                          Complete
+                          Delete
                         </button>
-                      )}
-                      <button
-                        type="button"
-                        className="tb"
-                        onClick={() => {
-                          setForm({
-                            title: a.title,
-                            desc: a.desc,
-                            category: a.category,
-                            date: a.date,
-                            time: a.time,
-                            endTime: a.endTime || "",
-                            location: a.location,
-                            hours: a.hours,
-                            slots: a.slots,
-                            colleges: a.colleges?.length
-                              ? a.colleges.filter((college) =>
-                                  collegeOptions.includes(college),
-                                )
-                              : [...collegeOptions],
-                            image: a.image || "",
-                          });
-                          setEditId(a.id);
-                          window.scrollTo({ top: 0, behavior: "smooth" });
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="tb bad"
-                        onClick={() => remove(a)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {shown.length === 0 && (
-                  <Empty cols={6} text="No activities found." />
+                  <Empty cols={8} text="No activities found." />
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      )}
+      {page === "Mandatory" && (
+        <Panel
+          eyebrow="REQUIRED PARTICIPATION"
+          title="Mandatory activities"
+          sub="Students in the participating colleges are expected to enroll and attend these activities. Completion is counted when attendance is verified."
+        >
+          <div className="tw admin-work-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>ACTIVITY</th>
+                  <th>PERIOD</th>
+                  <th>DATE</th>
+                  <th>COMPLETED</th>
+                  <th>NOT YET COMPLETED</th>
+                  <th>STATUS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mandatoryMine.map((a) => {
+                  const eligible = eligibleStudents(a);
+                  const notDone = eligible.filter((student) => {
+                    const enrollment = enr.find(
+                      (e) =>
+                        e.actId === a.id &&
+                        e.userId === student.id &&
+                        e.attended &&
+                        e.verified,
+                    );
+                    return !enrollment;
+                  });
+                  return (
+                    <tr key={a.id}>
+                      <td>
+                        <button
+                          type="button"
+                          className="activity-link"
+                          onClick={() => setSelectedActivity(a)}
+                        >
+                          <strong>{a.title}</strong>
+                        </button>
+                        <small>{a.category}</small>
+                      </td>
+                      <td>{periodLabel(a)}</td>
+                      <td>{fmtDate(a.date)}</td>
+                      <td>
+                        {completedCount(a)} / {eligible.length}
+                      </td>
+                      <td>
+                        {notDone.length ? (
+                          notDone.map((student) => (
+                            <small key={student.id}>
+                              {fullName(student)} · {student.college}
+                            </small>
+                          ))
+                        ) : (
+                          <small>All students completed</small>
+                        )}
+                      </td>
+                      <td>
+                        <Badge s={statusOf(a)} />
+                      </td>
+                    </tr>
+                  );
+                })}
+                {mandatoryMine.length === 0 && (
+                  <Empty
+                    cols={6}
+                    text="No mandatory activities yet. Tick 'Mandatory' when creating or editing an activity."
+                  />
                 )}
               </tbody>
             </table>

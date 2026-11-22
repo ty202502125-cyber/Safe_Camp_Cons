@@ -1,8 +1,13 @@
 import { useState } from "react";
 import { Gallery, Hero, Panel, Stat } from "../../shared/appCommon.jsx";
-import { fullName } from "../../utils/appUtils.jsx";
+import { Badge, fullName, periodLabel } from "../../utils/appUtils.jsx";
 
-export function PendingActivityTable({ list, users, onDecide }) {
+export function PendingActivityTable({
+  list,
+  users,
+  onDecide,
+  onToggleMandatory,
+}) {
   const [selected, setSelected] = useState(null);
   function owner(activity) {
     return users.find((user) => user.id === activity.by);
@@ -66,6 +71,8 @@ export function PendingActivityTable({ list, users, onDecide }) {
             <p className="modal-description">{selected.desc || "No event description was provided."}</p>
             <div className="detail-grid">
               <span><b>Category</b>{selected.category || "Not provided"}</span>
+              <span><b>Academic period</b>{periodLabel(selected)}</span>
+              <span><b>Requirement</b>{selected.mandatory ? <Badge s="Mandatory" /> : "Optional"}</span>
               <span><b>Requested by</b>{owner(selected) ? fullName(owner(selected)) : "Not available"}</span>
               <span><b>Office / college</b>{owner(selected)?.college || "Not available"}</span>
               <span><b>Contact email</b>{owner(selected)?.email || "Not available"}</span>
@@ -76,6 +83,11 @@ export function PendingActivityTable({ list, users, onDecide }) {
               <span className="w"><b>Eligible colleges</b>{selected.colleges?.length ? selected.colleges.join(", ") : "All eligible colleges"}</span>
             </div>
             <div className="row" style={{ justifyContent: "flex-end", gap: 10 }}>
+              {onToggleMandatory && (
+                <button type="button" className="tb" onClick={() => onToggleMandatory(selected)}>
+                  {selected.mandatory ? "Make optional" : "Mark mandatory"}
+                </button>
+              )}
               <button type="button" className="btn out sm" onClick={() => { onDecide(selected.id, "Rejected"); setSelected(null); }}>Reject request</button>
               <button type="button" className="btn sm" onClick={() => { onDecide(selected.id, "Open"); setSelected(null); }}>Approve activity</button>
             </div>
@@ -95,6 +107,7 @@ export default function SuperAdminHomePage({
   totalHours,
   onNavigate,
   onDecide,
+  onToggleMandatory,
 }) {
   const statuses = ["Open", "Ongoing", "Completed", "Pending", "Rejected"];
 
@@ -145,6 +158,7 @@ export default function SuperAdminHomePage({
             list={pending.slice(0, 3)}
             users={users}
             onDecide={onDecide}
+            onToggleMandatory={onToggleMandatory}
           />
         </Panel>
         <Panel eyebrow="ACTIVITY STATUS" title="Programs at a glance">

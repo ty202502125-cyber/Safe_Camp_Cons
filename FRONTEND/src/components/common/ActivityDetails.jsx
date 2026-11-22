@@ -4,6 +4,7 @@ import {
   collegeHasActiveAdmin,
   fullName,
   fmtDate,
+  periodLabel,
   timeRange,
 } from "../../utils/appUtils.jsx";
 import { Empty } from "./EmptyTableRow.jsx";
@@ -71,6 +72,14 @@ export function ActivityDetails({
           <span>
             <b>Status</b>
             <Badge s={status || activity.status} />
+          </span>
+          <span>
+            <b>Academic period</b>
+            {periodLabel(activity)}
+          </span>
+          <span>
+            <b>Requirement</b>
+            {activity.mandatory ? <Badge s="Mandatory" /> : "Optional"}
           </span>
           <span>
             <b>Coordinator</b>

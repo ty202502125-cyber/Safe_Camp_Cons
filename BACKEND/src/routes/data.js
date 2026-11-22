@@ -9,7 +9,34 @@ const router = Router();
 router.use(requireAuth, requirePasswordChangeComplete);
 // User records are served only by authenticated /api/users and /api/auth
 // endpoints. The generic data API is authenticated as well.
-const collections = new Set(["activities", "enrollments", "organizations"]);
+const collections = new Set([
+  "activities",
+  "enrollments",
+  "organizations",
+  "academicYears",
+]);
+const SEMESTERS = new Set(["1st Semester", "2nd Semester"]);
+const SCHOOL_YEAR = /^\d{4}-\d{2}$/;
+
+function academicYearError(records) {
+  const years = new Set();
+  let active = 0;
+  for (const record of records) {
+    if (
+      !record.id ||
+      typeof record.year !== "string" ||
+      !SCHOOL_YEAR.test(record.year) ||
+      !SEMESTERS.has(record.semester) ||
+      !["Active", "Archived"].includes(record.status)
+    )
+      return "Academic years need an id, YYYY-YY year, semester and status.";
+    if (years.has(record.year)) return "Each academic year must be unique.";
+    years.add(record.year);
+    if (record.status === "Active") active += 1;
+  }
+  if (active > 1) return "Only one academic year can be active.";
+  return null;
+}
 
 router.get("/:collection", async (req, res, next) => {
   try {
@@ -51,6 +78,30 @@ router.put("/:collection", async (req, res, next) => {
       return res
         .status(400)
         .json({ error: "Each record needs a unique id or name." });
+
+    if (collection === "academicYears") {
+      if (req.user?.role !== "Super Admin")
+        return res
+          .status(403)
+          .json({ error: "Only the Super Admin can manage academic years." });
+      const error = academicYearError(records);
+      if (error) return res.status(400).json({ error });
+    }
+    if (collection === "activities") {
+      const years = await pool.query(
+        "SELECT data FROM app_records WHERE collection = 'academicYears'",
+      );
+      const archived = years.rows
+        .map((row) => row.data)
+        .filter((year) => year?.status === "Archived")
+        .map((year) => year.year);
+      const locked = records.find((item) => archived.includes(item.schoolYear));
+      if (locked)
+        return res.status(403).json({
+          error: `Academic year ${locked.schoolYear} is archived and read-only.`,
+        });
+    }
+
     const client = await pool.connect();
     try {
       await client.query("BEGIN");

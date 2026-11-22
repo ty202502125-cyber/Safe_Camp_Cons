@@ -167,7 +167,7 @@ function OptionList({ values, selected }) {
   );
 }
 
-export default function ReportsPage({ startCollege, onBack }) {
+export default function ReportsPage({ startCollege, onBack, academicYears = [] }) {
   const [draft, setDraft] = useState({ ...EMPTY_FILTERS });
   const [applied, setApplied] = useState({ ...EMPTY_FILTERS });
   const [college, setCollege] = useState(startCollege || "");
@@ -309,7 +309,11 @@ export default function ReportsPage({ startCollege, onBack }) {
   );
 
   const schoolYearOptions = [
-    ...new Set([...DEFAULT_SCHOOL_YEARS, ...bySchoolYear.map((row) => row.name)]),
+    ...new Set([
+      ...DEFAULT_SCHOOL_YEARS,
+      ...academicYears.map((year) => year.year),
+      ...bySchoolYear.map((row) => row.name),
+    ]),
   ].sort((a, b) => b.localeCompare(a));
 
   function clearFilters() {
@@ -1030,7 +1034,7 @@ export default function ReportsPage({ startCollege, onBack }) {
             <Panel
               eyebrow="SEMESTER BREAKDOWN"
               title="Activities by semester"
-              sub="Grouped by the semester of each activity's date (June-November / December-May)."
+              sub="Grouped by the semester set for each activity. Older activities without a set semester use their date."
               action={
                 <ExportButton
                   rows={bySemester}
@@ -1073,7 +1077,7 @@ export default function ReportsPage({ startCollege, onBack }) {
             <Panel
               eyebrow="SCHOOL YEAR BREAKDOWN"
               title="Activities by school year"
-              sub="A school year runs from June to May of the following year."
+              sub="Grouped by the academic year set for each activity. Older activities without a set year use their date (June to May)."
               action={
                 <ExportButton
                   rows={bySchoolYear}

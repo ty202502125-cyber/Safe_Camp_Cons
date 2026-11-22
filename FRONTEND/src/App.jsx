@@ -34,6 +34,12 @@ export default function App() {
     "organizations",
     Boolean(me && !me.mustChangePassword),
   );
+  const [academicYears, setAcademicYears] = useStored(
+    "campus_serve_academic_years",
+    [],
+    "academicYears",
+    Boolean(me && !me.mustChangePassword),
+  );
   const [eligibleColleges, setEligibleColleges] = useState([]);
   const [booting, setBooting] = useState(true);
   const [theme, setTheme] = useStored("campus_serve_theme", "light");
@@ -155,6 +161,8 @@ export default function App() {
     setEnr: setEnrollments,
     organizations,
     setOrganizations,
+    academicYears,
+    setAcademicYears,
     flash: showNotice,
     theme,
     setTheme,
