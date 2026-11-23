@@ -43,5 +43,6 @@ History tracking starts when migration `004` is applied. The migration seeds one
 - Set `JWT_SECRET` (required in production) and `SUPER_ADMIN_PASSWORD` (required before the first start); never reuse a demo password.
 - TLS certificate verification is always on. Set `DB_CA_CERT` only if the database provider uses a private CA.
 - Bind to `0.0.0.0` (`HOST`) only behind a TLS-terminating reverse proxy, and set `TRUST_PROXY=1` so rate limiting sees real client IPs. Use `COOKIE_SAME_SITE=none` only when the UI and API are on different sites (cookies require HTTPS).
-- Security headers come from Helmet; rate limits apply to all `/api` traffic with a stricter limit on `/api/auth`.
+- Security headers come from Helmet; rate limits apply to all `/api` traffic with a stricter limit on `/api/auth`. `/api/health` is exempt so monitoring probes never exhaust the shared per-IP budget.
+- For local testing, set `RATE_LIMIT_SKIP=true` in `BACKEND/.env` to disable the limits, or set `RATE_LIMIT_LIMIT` to a higher number. Both are ignored in production. Restart the API after changing either; a restart also clears the current in-memory counters immediately.
 - Security-relevant actions are recorded in `portal_audit_logs`.

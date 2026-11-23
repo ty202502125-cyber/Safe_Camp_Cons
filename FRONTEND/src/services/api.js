@@ -50,6 +50,11 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
+  updateProfile: (details) =>
+    request("/api/users/me", {
+      method: "PATCH",
+      body: JSON.stringify(details),
+    }),
   requestReset: (email) =>
     request("/api/auth/password-reset/request", {
       method: "POST",

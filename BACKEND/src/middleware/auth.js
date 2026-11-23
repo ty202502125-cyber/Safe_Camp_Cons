@@ -74,6 +74,7 @@ export async function saveUser(record) {
     `UPDATE portal_users SET role = $2, last = $3, first = $4, mi = $5, idno = $6,
        email = $7, college = $8, org_type = $9, password_hash = $10,
        session_version = $11, status = $12, must_change_password = $13,
+       nickname = $14, avatar_data = $15, cover_data = $16,
        updated_at = NOW()
      WHERE id = $1`,
     [
@@ -90,6 +91,9 @@ export async function saveUser(record) {
       Number(record.sessionVersion || 0),
       record.status,
       record.mustChangePassword === true,
+      record.nickname || "",
+      record.avatarData || null,
+      record.coverData || null,
     ],
   );
 }

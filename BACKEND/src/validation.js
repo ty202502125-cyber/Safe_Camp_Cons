@@ -64,6 +64,20 @@ export const statusSchema = z.object({
   status: z.enum(["Active", "Inactive"]),
 });
 
+const imageData = z
+  .string()
+  .max(1_000_000, "This image is too large. Choose a smaller one.")
+  .refine(
+    (value) => !value || /^data:image\/(jpeg|png|webp);base64,/.test(value),
+    "Use a JPG, PNG, or WebP image.",
+  );
+
+export const profileUpdateSchema = z.object({
+  nickname: z.string().trim().max(30, "Nickname must be 30 characters or fewer.").optional(),
+  avatarData: imageData.optional(),
+  coverData: imageData.optional(),
+});
+
 const reportDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD.")

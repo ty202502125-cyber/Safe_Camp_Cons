@@ -25,6 +25,9 @@ export function rowToUser(row) {
     sessionVersion: row.session_version,
     mustChangePassword: row.must_change_password === true,
     status: row.status,
+    nickname: row.nickname || "",
+    avatarData: row.avatar_data || "",
+    coverData: row.cover_data || "",
   };
 }
 

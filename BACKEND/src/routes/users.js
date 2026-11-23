@@ -7,6 +7,7 @@ import {
   adminCreateSchema,
   resendPasswordSchema,
   statusSchema,
+  profileUpdateSchema,
 } from "../validation.js";
 import {
   findUserById,
@@ -173,6 +174,24 @@ router.post(
     }
   },
 );
+
+router.patch("/me", requireAuth, requirePasswordChangeComplete, validate(profileUpdateSchema), async (req, res, next) => {
+  try {
+    const record = await findUserById(req.user.id);
+    if (!record) return res.status(404).json({ error: "Account not found." });
+    const updated = {
+      ...record,
+      nickname: req.body.nickname ?? record.nickname ?? "",
+      avatarData: req.body.avatarData ?? record.avatarData ?? "",
+      coverData: req.body.coverData ?? record.coverData ?? "",
+    };
+    await saveUser(updated);
+    await logAudit(req, "profile_update", record.id);
+    res.json({ user: publicUser(updated) });
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.patch("/:id", requireAuth, requirePasswordChangeComplete, requireRole("Admin", "Super Admin"), validate(statusSchema), async (req, res, next) => {
   try {

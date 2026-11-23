@@ -125,6 +125,15 @@ export default function App() {
     return userApi.resendPassword(email, password);
   }
 
+  async function updateProfile(details) {
+    const result = await authApi.updateProfile(details);
+    setMe(result.user);
+    setUsers((current) =>
+      current.map((user) => (user.id === result.user.id ? result.user : user)),
+    );
+    return result;
+  }
+
   async function setUserStatus(id, status) {
     await userApi.updateStatus(id, status);
     await refreshUsers();
@@ -152,6 +161,7 @@ export default function App() {
     },
     createUser,
     resendAdminPassword,
+    updateProfile,
     setUserStatus,
     removeUser,
     eligibleColleges,
