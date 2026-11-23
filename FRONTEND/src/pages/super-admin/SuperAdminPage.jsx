@@ -36,6 +36,7 @@ export function SuperAdminPage({ d, start }) {
     setAcademicYears,
   } = d;
   const [page, setPage] = useState(start || "Overview");
+  const [clockNow] = useState(() => new Date());
   const [yearForm, setYearForm] = useState(() => {
     const year = new Date().getUTCFullYear();
     return {
@@ -408,6 +409,7 @@ export function SuperAdminPage({ d, start }) {
           adminCount={admins.length}
           studentCount={students.length}
           totalHours={totalHours}
+          clockNow={clockNow}
           onNavigate={setPage}
           onDecide={decide}
           onToggleMandatory={toggleMandatory}
@@ -424,6 +426,7 @@ export function SuperAdminPage({ d, start }) {
             users={users}
             onDecide={decide}
             onToggleMandatory={toggleMandatory}
+            clockNow={clockNow}
           />
         </Panel>
       )}

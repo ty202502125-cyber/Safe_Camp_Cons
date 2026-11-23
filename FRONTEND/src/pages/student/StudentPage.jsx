@@ -10,6 +10,9 @@ import {
   fmtTime,
   timeRange,
   hasActivityEnded,
+  isRegistrationOpen,
+  registrationLabel,
+  registrationState,
   activityStatus,
   Badge,
   Logo,
@@ -122,6 +125,11 @@ export function StudentPage({ d, start }) {
     if (hasActivityEnded(a))
       return flash(
         "This activity has ended and is no longer open for enrollment.",
+        true,
+      );
+    if (!isRegistrationOpen(a, clockNow))
+      return flash(
+        `Pre-registration is required. ${registrationState(a, clockNow).label}. Window: ${registrationLabel(a)}.`,
         true,
       );
     if (mine.some((e) => e.actId === a.id))
@@ -677,6 +685,7 @@ export function StudentPage({ d, start }) {
           <ActivityDetails
             activity={selectedActivity}
             status={activityStatus(selectedActivity, clockNow)}
+            clockNow={clockNow}
             users={d.users}
             enrollments={enr}
             organizations={d.organizations}

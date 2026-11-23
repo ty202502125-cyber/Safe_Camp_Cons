@@ -59,6 +59,16 @@ export function compressActivityImage(file) {
     image.src = source;
   });
 }
+export const dateKey = (date = new Date()) => {
+  const value = date instanceof Date ? date : new Date(date);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+};
+export const addDays = (key, days) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(key || "")) return "";
+  const [year, month, day] = key.split("-").map(Number);
+  return dateKey(new Date(year, month - 1, day + days));
+};
 export const hasActivityEnded = (a, now = new Date()) => {
   if (!a?.date || !a.time || !a.endTime) return false;
   return now >= new Date(`${a.date}T${a.endTime}`);
@@ -67,6 +77,40 @@ export const activityStatus = (a, now = new Date()) =>
   a && ["Open", "Ongoing"].includes(a.status) && hasActivityEnded(a, now)
     ? "Completed"
     : a?.status;
+export const registrationState = (activity, now = new Date()) => {
+  const today = dateKey(now);
+  if (!activity) return { open: false, label: "Unavailable" };
+  if (activity.status !== "Open")
+    return {
+      open: false,
+      label: activity.status === "Pending" ? "Awaiting approval" : "Closed",
+    };
+  if (!activity.registrationStart || !activity.registrationEnd)
+    return { open: false, label: "Registration not scheduled" };
+  if (today < activity.registrationStart)
+    return { open: false, label: `Opens ${fmtDate(activity.registrationStart)}` };
+  if (today > activity.registrationEnd)
+    return { open: false, label: "Pre-registration closed" };
+  if (activity.date && today >= activity.date)
+    return { open: false, label: "Registration closed on event day" };
+  if (hasActivityEnded(activity, now))
+    return { open: false, label: "Event completed" };
+  return { open: true, label: "Pre-registration open" };
+};
+export const isRegistrationOpen = (activity, now = new Date()) =>
+  registrationState(activity, now).open;
+export const eventPhase = (activity, now = new Date()) => {
+  const status = activityStatus(activity, now);
+  if (status === "Completed") return "Completed";
+  if (status === "Ongoing" || (activity?.date && dateKey(now) === activity.date))
+    return "Event day";
+  const registration = registrationState(activity, now);
+  return registration.open ? "Pre-registration" : "Registration closed";
+};
+export const registrationLabel = (activity) =>
+  activity?.registrationStart && activity?.registrationEnd
+    ? `${fmtDate(activity.registrationStart)} – ${fmtDate(activity.registrationEnd)}`
+    : "Not scheduled";
 export const BCLS = {
   Active: "ok",
   Archived: "gold",
@@ -77,6 +121,9 @@ export const BCLS = {
   Ongoing: "gold",
   Pending: "gold",
   Mandatory: "mand",
+  "Pre-registration": "gold",
+  "Event day": "ok",
+  "Registration closed": "no",
   Logged: "gold",
   Rejected: "no",
   Declined: "no",

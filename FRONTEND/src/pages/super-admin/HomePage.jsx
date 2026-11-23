@@ -3,10 +3,14 @@ import { Hero, Panel } from "../../shared/appCommon.jsx";
 import {
   Badge,
   activityStatus,
+  eventPhase,
   fmtDate,
   fullName,
   periodLabel,
+  registrationLabel,
+  registrationState,
 } from "../../utils/appUtils.jsx";
+import { MemoLinks } from "../../components/common/MemoLinks.jsx";
 
 const MONTHS = (() => {
   const now = new Date();
@@ -97,6 +101,7 @@ export function PendingActivityTable({
   users,
   onDecide,
   onToggleMandatory,
+  clockNow,
 }) {
   const [selected, setSelected] = useState(null);
   function owner(activity) {
@@ -163,6 +168,9 @@ export function PendingActivityTable({
               <span><b>Category</b>{selected.category || "Not provided"}</span>
               <span><b>Academic period</b>{periodLabel(selected)}</span>
               <span><b>Requirement</b>{selected.mandatory ? <Badge s="Mandatory" /> : "Optional"}</span>
+              <span><b>Current phase</b><Badge s={eventPhase(selected, clockNow)} /></span>
+              <span><b>Pre-registration</b>{registrationLabel(selected)}</span>
+              <span><b>Registration status</b>{registrationState(selected, clockNow).label}</span>
               <span><b>Requested by</b>{owner(selected) ? fullName(owner(selected)) : "Not available"}</span>
               <span><b>Office / college</b>{owner(selected)?.college || "Not available"}</span>
               <span><b>Contact email</b>{owner(selected)?.email || "Not available"}</span>
@@ -172,6 +180,7 @@ export function PendingActivityTable({
               <span><b>Available slots</b>{selected.slots ?? "Not provided"}</span>
               <span className="w"><b>Eligible colleges</b>{selected.colleges?.length ? selected.colleges.join(", ") : "All eligible colleges"}</span>
             </div>
+            <MemoLinks memo={selected.memo} />
             <div className="row" style={{ justifyContent: "flex-end", gap: 10 }}>
               {onToggleMandatory && (
                 <button type="button" className="tb" onClick={() => onToggleMandatory(selected)}>
@@ -201,6 +210,7 @@ export default function SuperAdminHomePage({
   onNavigate,
   onDecide,
   onToggleMandatory,
+  clockNow,
 }) {
   const activeYear = academicYears.find((year) => year.status === "Active");
   const verified = enrollments.filter((entry) => entry.attended && entry.verified);
@@ -439,6 +449,7 @@ export default function SuperAdminHomePage({
             users={users}
             onDecide={onDecide}
             onToggleMandatory={onToggleMandatory}
+            clockNow={clockNow}
           />
         </Panel>
       </div>

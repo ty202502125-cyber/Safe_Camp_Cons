@@ -2,12 +2,16 @@ import { IMG, PHOTO } from "../../data/appData.js";
 import {
   Badge,
   collegeHasActiveAdmin,
+  eventPhase,
   fullName,
   fmtDate,
   periodLabel,
+  registrationLabel,
+  registrationState,
   timeRange,
 } from "../../utils/appUtils.jsx";
 import { Empty } from "./EmptyTableRow.jsx";
+import { MemoLinks } from "./MemoLinks.jsx";
 
 export function ActivityDetails({
   activity,
@@ -15,9 +19,11 @@ export function ActivityDetails({
   enrollments,
   organizations,
   status,
+  clockNow,
   close,
 }) {
   if (!activity) return null;
+  const now = clockNow;
   const coordinator = users.find((u) => u.id === activity.by);
   const participants = enrollments.filter(
     (e) => e.actId === activity.id && e.status === "Accepted",
@@ -82,6 +88,18 @@ export function ActivityDetails({
             {activity.mandatory ? <Badge s="Mandatory" /> : "Optional"}
           </span>
           <span>
+            <b>Current phase</b>
+            <Badge s={eventPhase(activity, now)} />
+          </span>
+          <span>
+            <b>Pre-registration</b>
+            {registrationLabel(activity)}
+          </span>
+          <span>
+            <b>Registration status</b>
+            {registrationState(activity, now).label}
+          </span>
+          <span>
             <b>Coordinator</b>
             {coordinator ? fullName(coordinator) : "Not available"}
           </span>
@@ -114,6 +132,7 @@ export function ActivityDetails({
               : colleges.join(", ") || "No active colleges selected"}
           </span>
         </div>
+        <MemoLinks memo={activity.memo} />
         <div className="tw participant-table">
           <table>
             <thead>

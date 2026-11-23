@@ -38,6 +38,27 @@ function academicYearError(records) {
   return null;
 }
 
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const dayKey = (date = new Date()) => {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
+function registrationError(activity, today) {
+  if (!activity || activity.status !== "Open")
+    return "This activity is not open for registration.";
+  const { registrationStart, registrationEnd, date } = activity;
+  if (!DATE.test(registrationStart || "") || !DATE.test(registrationEnd || "") || !DATE.test(date || ""))
+    return "This activity has no valid pre-registration window.";
+  if (registrationEnd >= date)
+    return "Pre-registration must end before the day of the activity.";
+  if (today < registrationStart)
+    return `Pre-registration opens on ${registrationStart}.`;
+  if (today > registrationEnd || today >= date)
+    return "Pre-registration is closed. Students must register ahead of the event day.";
+  return null;
+}
+
 router.get("/:collection", async (req, res, next) => {
   try {
     if (!collections.has(req.params.collection))
@@ -100,6 +121,55 @@ router.put("/:collection", async (req, res, next) => {
         return res.status(403).json({
           error: `Academic year ${locked.schoolYear} is archived and read-only.`,
         });
+      const badWindow = records.find(
+        (item) =>
+          item.registrationStart &&
+          item.registrationEnd &&
+          item.date &&
+          item.registrationEnd >= item.date,
+      );
+      if (badWindow)
+        return res.status(400).json({
+          error: "Pre-registration must end before the day of the activity.",
+        });
+      const bigMemo = records.find(
+        (item) => typeof item.memo?.data === "string" && item.memo.data.length > 3_000_000,
+      );
+      if (bigMemo)
+        return res
+          .status(400)
+          .json({ error: "A memo must be smaller than 2 MB." });
+    }
+    if (collection === "enrollments") {
+      const existing = await pool.query(
+        "SELECT record_id, data FROM app_records WHERE collection = 'enrollments'",
+      );
+      const before = new Map(
+        existing.rows.map((row) => [row.record_id, row.data]),
+      );
+      const activityCache = new Map();
+      for (const record of records) {
+        const previous = before.get(String(record.id));
+        if (
+          previous &&
+          previous.actId === record.actId &&
+          previous.userId === record.userId
+        )
+          continue;
+        const activityId = String(record.actId);
+        if (!activityCache.has(activityId)) {
+          const found = await pool.query(
+            "SELECT data FROM app_records WHERE collection = 'activities' AND record_id = $1",
+            [activityId],
+          );
+          activityCache.set(activityId, found.rows[0]?.data || null);
+        }
+        const error = registrationError(activityCache.get(activityId), dayKey());
+        if (error)
+          return res
+            .status(403)
+            .json({ error: `Registration rejected: ${error}` });
+      }
     }
 
     const client = await pool.connect();

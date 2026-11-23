@@ -2,7 +2,10 @@ import {
   Badge,
   accepted,
   activityStatus,
+  eventPhase,
   fmtDate,
+  registrationLabel,
+  registrationState,
   timeRange,
 } from "../../utils/appUtils.jsx";
 import { IMG, PHOTO } from "../../data/appData.js";
@@ -22,6 +25,7 @@ export default function StudentActivityCard({
 }) {
   const enrollment = mine.find((item) => item.actId === activity.id);
   const placesLeft = activity.slots - accepted(enrollments, activity);
+  const registration = registrationState(activity, clockNow);
 
   return (
     <article className="card acard">
@@ -35,6 +39,7 @@ export default function StudentActivityCard({
         aria-label={`View ${activity.title} details`}
       >
         <Badge s={activityStatus(activity, clockNow)} />
+        <Badge s={eventPhase(activity, clockNow)} />
         {activity.mandatory && <Badge s="Mandatory" />}
       </button>
       <div className="abody">
@@ -54,6 +59,7 @@ export default function StudentActivityCard({
           <span>
             {fmtDate(activity.date)} · {timeRange(activity)}
           </span>
+          <span>Pre-registration: {registrationLabel(activity)}</span>
           <span>{activity.location}</span>
           <span>
             {plural(activity.hours, "service hour")} · {Math.max(placesLeft, 0)}{" "}
@@ -68,6 +74,11 @@ export default function StudentActivityCard({
           >
             Coordinator & details
           </button>
+          {activity.memo && (
+            <button type="button" className="tb" onClick={() => onSelect(activity)}>
+              Memo
+            </button>
+          )}
           {enrollment ? <Badge s={enrollment.status} /> : <span />}
           {enrollment ? (
             enrollment.status === "Pending" && (
@@ -83,11 +94,12 @@ export default function StudentActivityCard({
             <button
               type="button"
               className="btn sm"
-              disabled={activity.status !== "Open" || placesLeft <= 0}
+              disabled={!registration.open || placesLeft <= 0}
+              title={registration.label}
               onClick={() => onEnroll(activity)}
             >
-              {activity.status !== "Open"
-                ? "Closed"
+              {!registration.open
+                ? "Registration closed"
                 : placesLeft <= 0
                   ? "Full"
                   : "Enroll"}

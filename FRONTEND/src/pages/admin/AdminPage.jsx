@@ -9,7 +9,11 @@ import {
   timeRange,
   calcHours,
   compressActivityImage,
+  addDays,
+  dateKey,
   hasActivityEnded,
+  registrationLabel,
+  registrationState,
   activityStatus,
   Badge,
   accepted,
@@ -38,6 +42,9 @@ const blank = {
   colleges: [...COLLEGES],
   image: "",
   mandatory: false,
+  registrationStart: dateKey(),
+  registrationEnd: "",
+  memo: null,
 };
 export function AdminPage({ d, start }) {
   const {
@@ -186,6 +193,52 @@ export function AdminPage({ d, start }) {
       flash(error.message || "Could not load that image.", true);
     }
   }
+  function chooseMemo(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowed = /\.(pdf|txt|doc|docx|png|jpe?g|webp)$/i.test(file.name);
+    if (!allowed)
+      return flash("Choose a PDF, Word, text or image memo.", true);
+    if (file.size > 2 * 1024 * 1024)
+      return flash("The memo must be smaller than 2 MB.", true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setForm((current) =>
+        current
+          ? {
+              ...current,
+              memo: {
+                name: file.name,
+                type: file.type || "application/octet-stream",
+                data: String(reader.result),
+                size: file.size,
+                uploadedAt: new Date().toISOString(),
+              },
+            }
+          : current,
+      );
+      flash("Memo attached. Students can view and download it.");
+    };
+    reader.onerror = () => flash("Could not read that memo file.", true);
+    reader.readAsDataURL(file);
+  }
+  function setEventDate(e) {
+    const date = e.target.value;
+    setForm((current) =>
+      current
+        ? {
+            ...current,
+            date,
+            registrationEnd:
+              !current.registrationEnd || current.registrationEnd >= date
+                ? addDays(date, -1)
+                : current.registrationEnd,
+            registrationStart:
+              current.registrationStart || dateKey(),
+          }
+        : current,
+    );
+  }
 
   function save(e) {
     e.preventDefault();
@@ -210,6 +263,18 @@ export function AdminPage({ d, start }) {
     if (form.endTime <= form.time)
       return flash(
         "The ending time must be later than the starting time.",
+        true,
+      );
+    if (!form.registrationStart || !form.registrationEnd)
+      return flash("Set the pre-registration start and end dates.", true);
+    if (form.registrationStart > form.registrationEnd)
+      return flash(
+        "The pre-registration end date must be on or after the start date.",
+        true,
+      );
+    if (form.registrationEnd >= form.date)
+      return flash(
+        "Pre-registration must end before the day of the activity.",
         true,
       );
     const eligibleColleges = [
@@ -553,6 +618,32 @@ export function AdminPage({ d, start }) {
                   </button>
                 </div>
               )}
+              <label className="w">
+                Activity memo{" "}
+                <span className="opt">
+                  (optional: PDF, Word, text or image; max 2 MB)
+                </span>
+                <input
+                  type="file"
+                  accept=".pdf,.txt,.doc,.docx,image/jpeg,image/png,image/webp"
+                  onChange={chooseMemo}
+                />
+              </label>
+              {form.memo && (
+                <div className="memo-box w">
+                  <div className="memo-info">
+                    <strong>{form.memo.name}</strong>
+                    <small>Memo attached — students can view and download it.</small>
+                  </div>
+                  <button
+                    type="button"
+                    className="tb bad"
+                    onClick={() => setForm({ ...form, memo: null })}
+                  >
+                    Remove memo
+                  </button>
+                </div>
+              )}
               <label>
                 Category
                 <select value={form.category} onChange={setF("category")}>
@@ -566,9 +657,37 @@ export function AdminPage({ d, start }) {
                 <input value={form.location} onChange={setF("location")} />
               </label>
               <label>
-                Date
-                <input type="date" value={form.date} onChange={setF("date")} />
+                Date of activity
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={setEventDate}
+                  required
+                />
               </label>
+              <label>
+                Pre-registration starts
+                <input
+                  type="date"
+                  value={form.registrationStart || ""}
+                  onChange={setF("registrationStart")}
+                  required
+                />
+              </label>
+              <label>
+                Pre-registration ends
+                <input
+                  type="date"
+                  value={form.registrationEnd || ""}
+                  onChange={setF("registrationEnd")}
+                  required
+                />
+              </label>
+              <p className="note w">
+                Registration closes before the event day. On the day itself,
+                students can no longer register — they must pre-register ahead
+                of time.
+              </p>
               <label>
                 Starting time
                 <input
@@ -666,6 +785,7 @@ export function AdminPage({ d, start }) {
                   <th>ACTIVITY</th>
                   <th>PERIOD</th>
                   <th>SCHEDULE</th>
+                  <th>PRE-REGISTRATION</th>
                   <th>HOURS</th>
                   <th>ENROLLED</th>
                   <th>REQUIRED</th>
@@ -695,6 +815,10 @@ export function AdminPage({ d, start }) {
                       <td>
                         {fmtDate(a.date)} · {timeRange(a)}
                         <small>{a.location}</small>
+                      </td>
+                      <td>
+                        {registrationLabel(a)}
+                        <small>{registrationState(a, clockNow).label}</small>
                       </td>
                       <td>{a.hours} h</td>
                       <td>
@@ -759,6 +883,11 @@ export function AdminPage({ d, start }) {
                                 : [...collegeOptions],
                               image: a.image || "",
                               mandatory: Boolean(a.mandatory),
+                              registrationStart:
+                                a.registrationStart || dateKey(),
+                              registrationEnd:
+                                a.registrationEnd || addDays(a.date, -1),
+                              memo: a.memo || null,
                             });
                             setEditId(a.id);
                             window.scrollTo({ top: 0, behavior: "smooth" });
@@ -779,7 +908,7 @@ export function AdminPage({ d, start }) {
                   );
                 })}
                 {shown.length === 0 && (
-                  <Empty cols={8} text="No activities found." />
+                  <Empty cols={9} text="No activities found." />
                 )}
               </tbody>
             </table>
@@ -1018,6 +1147,7 @@ export function AdminPage({ d, start }) {
         <ActivityDetails
           activity={selectedActivity}
           status={statusOf(selectedActivity)}
+          clockNow={clockNow}
           users={users}
           enrollments={enr}
           organizations={organizations}

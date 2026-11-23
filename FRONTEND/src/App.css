@@ -3357,9 +3357,13 @@ small,
   color: var(--c);
   outline: 1px solid currentColor;
 }
-.aimg .bd + .bd {
+.aimg .bd:nth-child(2),
+.aimg .bd:nth-child(3) {
   left: auto;
   right: 10px;
+}
+.aimg .bd:nth-child(3) {
+  top: 38px;
 }
 .form label.check {
   flex-direction: row;
@@ -3708,4 +3712,37 @@ small,
   .ov-funnel-row {
     grid-template-columns: 68px minmax(0, 1fr) 28px;
   }
+}
+
+/* Activity memo */
+.memo-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--soft);
+}
+.memo-info {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+.memo-info strong {
+  display: block;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.memo-info small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.memo-box .tb {
+  text-decoration: none;
 }
