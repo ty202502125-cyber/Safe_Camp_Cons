@@ -5,6 +5,8 @@ import {
   COLLEGES,
   nid,
   fullName,
+  displayName,
+  initials,
   fmtDate,
   timeRange,
   calcHours,
@@ -66,6 +68,7 @@ export function AdminPage({ d, start }) {
   const [form, setForm] = useState(null);
   const [editId, setEditId] = useState(null);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState(null);
   const [q, setQ] = useState("");
   const [sf, setSf] = useState("All");
   const [clockNow, setClockNow] = useState(() => new Date());
@@ -152,7 +155,7 @@ export function AdminPage({ d, start }) {
     if (!student) return;
     if (
       !window.confirm(
-        `Permanently delete ${fullName(student)} (${student.email})? This also removes their enrollment records.`,
+        `Permanently delete ${displayName(student)} (${student.email})? This also removes their enrollment records.`,
       )
     )
       return;
@@ -455,8 +458,15 @@ export function AdminPage({ d, start }) {
                 {collegeStudents.map((u) => (
                   <tr key={u.id}>
                     <td>
-                      <strong>{fullName(u)}</strong>
-                      <small>{u.email}</small>
+                      <div className="person-cell">
+                        {u.avatarData && (
+                          <img src={u.avatarData} alt="" />
+                        )}
+                        <div>
+                          <strong>{displayName(u)}</strong>
+                          <small>{u.email}</small>
+                        </div>
+                      </div>
                     </td>
                     <td>{u.idno}</td>
                     <td>{u.college}</td>
@@ -967,7 +977,7 @@ export function AdminPage({ d, start }) {
                         {notDone.length ? (
                           notDone.map((student) => (
                             <small key={student.id}>
-                              {fullName(student)} · {student.college}
+                              {displayName(student)} · {student.college}
                             </small>
                           ))
                         ) : (
@@ -1012,8 +1022,29 @@ export function AdminPage({ d, start }) {
                 {myEnr.map((e) => (
                   <tr key={e.id}>
                     <td>
-                      <strong>{fullName(stu(e.userId))}</strong>
-                      <small>{stu(e.userId).idno}</small>
+                      <button
+                        type="button"
+                        className="activity-link student-request-link"
+                        title="View student details"
+                        onClick={() =>
+                          setSelectedStudent({
+                            student: stu(e.userId),
+                            enrollment: e,
+                          })
+                        }
+                      >
+                        {stu(e.userId).avatarData ? (
+                          <img
+                            src={stu(e.userId).avatarData}
+                            alt=""
+                            className="av-photo"
+                          />
+                        ) : null}
+                        <span>
+                          <strong>{displayName(stu(e.userId))}</strong>
+                          <small>{stu(e.userId).idno}</small>
+                        </span>
+                      </button>
                     </td>
                     <td>{stu(e.userId).college}</td>
                     <td>
@@ -1081,7 +1112,7 @@ export function AdminPage({ d, start }) {
                     return (
                       <tr key={e.id}>
                         <td>
-                          <strong>{fullName(stu(e.userId))}</strong>
+                          <strong>{displayName(stu(e.userId))}</strong>
                           <small>{stu(e.userId).college}</small>
                         </td>
                         <td>
@@ -1153,6 +1184,131 @@ export function AdminPage({ d, start }) {
           organizations={organizations}
           close={() => setSelectedActivity(null)}
         />
+      )}
+      {selectedStudent && (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) =>
+            event.target === event.currentTarget && setSelectedStudent(null)
+          }
+        >
+          <section
+            className="card activity-modal student-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="student-request-title"
+          >
+            <div className="ph">
+              <div>
+                <span className="eyebrow">STUDENT REQUEST</span>
+                <h2 id="student-request-title">
+                  {displayName(selectedStudent.student)}
+                </h2>
+              </div>
+              <button
+                className="tb"
+                type="button"
+                onClick={() => setSelectedStudent(null)}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="student-popup-body">
+              <div className="student-popup-photo">
+                {selectedStudent.student.coverData && (
+                  <div
+                    className="pbanner"
+                    style={{
+                      backgroundImage: `url(${selectedStudent.student.coverData})`,
+                    }}
+                  />
+                )}
+                <div className="av lg">
+                  {selectedStudent.student.avatarData ? (
+                    <img
+                      src={selectedStudent.student.avatarData}
+                      alt=""
+                      className="av-photo"
+                    />
+                  ) : (
+                    initials(selectedStudent.student)
+                  )}
+                </div>
+              </div>
+
+              <div className="detail-grid">
+                <div>
+                  <span>Full name</span>
+                  <b>{fullName(selectedStudent.student)}</b>
+                </div>
+                <div>
+                  <span>Nickname</span>
+                  <b>{selectedStudent.student.nickname || "—"}</b>
+                </div>
+                <div>
+                  <span>ID number</span>
+                  <b>{selectedStudent.student.idno}</b>
+                </div>
+                <div>
+                  <span>Email</span>
+                  <b>{selectedStudent.student.email}</b>
+                </div>
+                <div>
+                  <span>College</span>
+                  <b>{selectedStudent.student.college}</b>
+                </div>
+                <div>
+                  <span>Status</span>
+                  <b>{selectedStudent.student.status}</b>
+                </div>
+              </div>
+            </div>
+
+            <p className="modal-description">
+              Request for{" "}
+              <strong>{act(selectedStudent.enrollment.actId)?.title}</strong> on{" "}
+              {fmtDate(act(selectedStudent.enrollment.actId)?.date)} ·{" "}
+              <Badge s={selectedStudent.enrollment.status} />
+            </p>
+
+            <div className="row" style={{ gap: 8, justifyContent: "flex-end" }}>
+              {selectedStudent.enrollment.status === "Pending" ? (
+                <>
+                  <button
+                    className="tb bad"
+                    type="button"
+                    onClick={() => {
+                      respond(selectedStudent.enrollment, "Declined");
+                      setSelectedStudent(null);
+                    }}
+                  >
+                    Decline
+                  </button>
+                  <button
+                    className="btn sm"
+                    type="button"
+                    onClick={() => {
+                      respond(selectedStudent.enrollment, "Accepted");
+                      setSelectedStudent(null);
+                    }}
+                  >
+                    Accept request
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="tb"
+                  type="button"
+                  onClick={() => setSelectedStudent(null)}
+                >
+                  Done
+                </button>
+              )}
+            </div>
+          </section>
+        </div>
       )}
     </Shell>
   );

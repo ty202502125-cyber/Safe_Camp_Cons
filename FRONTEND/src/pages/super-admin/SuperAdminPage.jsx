@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from "react";
 import SuperAdminHomePage, { PendingActivityTable } from "./HomePage.jsx";
 import {
-  fullName,
+  displayName,
   fmtDate,
   Badge,
   accepted,
@@ -15,6 +15,7 @@ import {
   Shell,
   Profile,
 } from "../../shared/appCommon.jsx";
+import api from "../../services/api.js";
 
 const ReportsPage = lazy(() => import("./ReportsPage.jsx"));
 const isoNow = () => new Date().toISOString();
@@ -54,6 +55,19 @@ export function SuperAdminPage({ d, start }) {
   const admins = users.filter((u) => u.role === "Admin"),
     students = users.filter((u) => u.role === "User");
   const activeYear = activeAcademicYear(academicYears);
+
+  async function persistAcademicYears(next, message) {
+    setAcademicYears(next);
+    try {
+      // Write straight to PostgreSQL so the setting is never lost if the
+      // delayed auto-save is interrupted by a refresh.
+      await api.saveCollection("academicYears", next);
+      flash(message);
+    } catch (error) {
+      setAcademicYears(academicYears);
+      flash(`Could not save: ${error.message}`, true);
+    }
+  }
   // An organization stays assigned while its Admin is inactive; deleting that account frees it.
   const assignedOrganizations = new Set(admins.map((admin) => admin.college));
   const availableOrganizations = organizations.filter(
@@ -102,7 +116,7 @@ export function SuperAdminPage({ d, start }) {
         : "Activity marked mandatory — students must attend.",
     );
   }
-  function saveAcademicYear(e) {
+  async function saveAcademicYear(e) {
     e.preventDefault();
     const year = yearForm.year.trim();
     if (!/^\d{4}-\d{2}$/.test(year))
@@ -110,41 +124,43 @@ export function SuperAdminPage({ d, start }) {
     if (academicYears.some((item) => item.year === year))
       return flash(`${year} already exists in the academic year list.`, true);
     const now = isoNow();
-    setAcademicYears([
-      ...academicYears.map((item) =>
-        item.status === "Active"
-          ? { ...item, status: "Archived", archivedAt: now }
-          : item,
-      ),
-      {
-        id: nid(academicYears),
-        year,
-        semester: yearForm.semester,
-        status: "Active",
-        createdAt: now,
-      },
-    ]);
-    flash(`${year} (${yearForm.semester}) is now the active academic period.`);
+    await persistAcademicYears(
+      [
+        ...academicYears.map((item) =>
+          item.status === "Active"
+            ? { ...item, status: "Archived", archivedAt: now }
+            : item,
+        ),
+        {
+          id: nid(academicYears),
+          year,
+          semester: yearForm.semester,
+          status: "Active",
+          createdAt: now,
+        },
+      ],
+      `${year} (${yearForm.semester}) is now the active academic period.`,
+    );
   }
-  function archiveAcademicYear(year) {
+  async function archiveAcademicYear(year) {
     if (
       !window.confirm(
         `Archive ${year.year}? Its activities become read-only and remain available in Reports.`,
       )
     )
       return;
-    setAcademicYears(
+    await persistAcademicYears(
       academicYears.map((item) =>
         item.id === year.id
           ? { ...item, status: "Archived", archivedAt: isoNow() }
           : item,
       ),
+      `${year.year} archived. Set a new academic year to publish activities.`,
     );
-    flash(`${year.year} archived. Set a new academic year to publish activities.`);
   }
-  function activateAcademicYear(year) {
+  async function activateAcademicYear(year) {
     const now = isoNow();
-    setAcademicYears(
+    await persistAcademicYears(
       academicYears.map((item) =>
         item.id === year.id
           ? { ...item, status: "Active", archivedAt: undefined }
@@ -152,17 +168,17 @@ export function SuperAdminPage({ d, start }) {
             ? { ...item, status: "Archived", archivedAt: now }
             : item,
       ),
+      `${year.year} is active again. The previous year was archived.`,
     );
-    flash(`${year.year} is active again. The previous year was archived.`);
   }
-  function changeSemester(value) {
+  async function changeSemester(value) {
     if (!activeYear) return;
-    setAcademicYears(
+    await persistAcademicYears(
       academicYears.map((item) =>
         item.id === activeYear.id ? { ...item, semester: value } : item,
       ),
+      `Current semester set to ${value}. New activities will use it.`,
     );
-    flash(`Current semester set to ${value}. New activities will use it.`);
   }
   function assignLegacyPeriods() {
     if (!activeYear) return;
@@ -353,7 +369,7 @@ export function SuperAdminPage({ d, start }) {
     if (!account) return;
     if (
       !window.confirm(
-        `Permanently delete ${fullName(account)} (${account.email})? This removes the Admin account.`,
+        `Permanently delete ${displayName(account)} (${account.email})? This removes the Admin account.`,
       )
     )
       return;
@@ -624,7 +640,7 @@ export function SuperAdminPage({ d, start }) {
                           <>
                             <span className="bd ok">Assigned</span>
                             <small>
-                              {fullName(orgAdmins[0])}
+                              {displayName(orgAdmins[0])}
                               {orgAdmins[0].status !== "Active" &&
                                 " · inactive"}
                             </small>
@@ -712,7 +728,7 @@ export function SuperAdminPage({ d, start }) {
                                 <small>Assigned Admin</small>
                                 {orgAdmins.map((admin) => (
                                   <strong key={admin.id}>
-                                    {fullName(admin)}
+                                    {displayName(admin)}
                                   </strong>
                                 ))}
                               </div>
@@ -908,8 +924,15 @@ export function SuperAdminPage({ d, start }) {
                   return (
                   <tr key={u.id}>
                     <td>
-                      <strong>{fullName(u)}</strong>
-                      <small>{u.email}</small>
+                      <div className="person-cell">
+                        {u.avatarData && (
+                          <img src={u.avatarData} alt="" />
+                        )}
+                        <div>
+                          <strong>{displayName(u)}</strong>
+                          <small>{u.email}</small>
+                        </div>
+                      </div>
                     </td>
                     <td>{u.college}</td>
                     <td>
@@ -966,7 +989,7 @@ export function SuperAdminPage({ d, start }) {
                           </div>
                           <div className="org-action-owner">
                             <small>Admin</small>
-                            <strong>{fullName(u)}</strong>
+                            <strong>{displayName(u)}</strong>
                           </div>
                         </div>
                       ) : (
@@ -1109,8 +1132,15 @@ export function SuperAdminPage({ d, start }) {
                 {students.map((u) => (
                   <tr key={u.id}>
                     <td>
-                      <strong>{fullName(u)}</strong>
-                      <small>{u.email}</small>
+                      <div className="person-cell">
+                        {u.avatarData && (
+                          <img src={u.avatarData} alt="" />
+                        )}
+                        <div>
+                          <strong>{displayName(u)}</strong>
+                          <small>{u.email}</small>
+                        </div>
+                      </div>
                     </td>
                     <td>{u.idno}</td>
                     <td>{u.college}</td>

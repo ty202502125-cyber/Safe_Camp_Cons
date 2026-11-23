@@ -276,7 +276,11 @@ export function StudentPage({ d, start }) {
           title="My profile"
           onClick={() => setPage("My Profile")}
         >
-          {initials(me)}
+          {me.avatarData ? (
+            <img src={me.avatarData} alt="" className="av-photo" />
+          ) : (
+            initials(me)
+          )}
         </button>
         <button type="button" className="btn out sm" onClick={d.logout}>
           Log out

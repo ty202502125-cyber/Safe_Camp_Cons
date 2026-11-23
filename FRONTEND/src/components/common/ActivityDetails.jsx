@@ -4,6 +4,7 @@ import {
   collegeHasActiveAdmin,
   eventPhase,
   fullName,
+  displayName,
   fmtDate,
   periodLabel,
   registrationLabel,
@@ -150,7 +151,7 @@ export function ActivityDetails({
                 return (
                   <tr key={e.id}>
                     <td>
-                      <strong>{fullName(student)}</strong>
+                      <strong>{displayName(student)}</strong>
                       <small>{student.idno}</small>
                     </td>
                     <td>{student.college}</td>

@@ -1,6 +1,6 @@
 import { IMG } from "../../data/appData.js";
 import { Logo, ThemeToggle } from "../common/SharedUi.jsx";
-import { fullName, initials } from "../../utils/appUtils.jsx";
+import { displayName, initials } from "../../utils/appUtils.jsx";
 
 export function Shell({ d, nav, page, setPage, children }) {
   const u = d.me,
@@ -26,9 +26,15 @@ export function Shell({ d, nav, page, setPage, children }) {
           title="Open my profile"
           onClick={() => setPage("My Profile")}
         >
-          <span className="av">{initials(u)}</span>
+          <span className="av">
+            {u.avatarData ? (
+              <img src={u.avatarData} alt="" className="av-photo" />
+            ) : (
+              initials(u)
+            )}
+          </span>
           <span>
-            <b>{fullName(u)}</b>
+            <b>{displayName(u)}</b>
             <small>{u.college}</small>
           </span>
         </button>
@@ -81,7 +87,11 @@ export function Shell({ d, nav, page, setPage, children }) {
               aria-label="Open my profile"
               onClick={() => setPage("My Profile")}
             >
-              {initials(u)}
+              {u.avatarData ? (
+                <img src={u.avatarData} alt="" className="av-photo" />
+              ) : (
+                initials(u)
+              )}
             </button>
           </div>
         </header>

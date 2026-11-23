@@ -13,24 +13,29 @@ export function useStored(key, initial, collection = null, enabled = true) {
   const valueRef = useRef(value);
   const changedBeforeLoad = useRef(false);
   const loadingRef = useRef(false);
+  // `initial` is often written as a literal (for example `[]`). Keep it in a
+  // ref so a new array on every render does not restart the database loader.
+  const initialRef = useRef(initial);
+  initialRef.current = initial;
   useEffect(() => {
     const syncFromOtherTab = (event) => {
       if (event.key !== key) return;
       try {
         setValue(
-          event.newValue === null ? initial : JSON.parse(event.newValue),
+          event.newValue === null
+            ? initialRef.current
+            : JSON.parse(event.newValue),
         );
       } catch {
-        setValue(initial);
+        setValue(initialRef.current);
       }
     };
     window.addEventListener("storage", syncFromOtherTab);
     return () => window.removeEventListener("storage", syncFromOtherTab);
-  }, [key, initial]);
+  }, [key]);
   const [databaseReady, setDatabaseReady] = useState(!collection);
   useEffect(() => {
-    if (!collection) return undefined;
-    if (!enabled) return undefined;
+    if (!collection || !enabled) return undefined;
     let active = true;
     loadingRef.current = true;
     api
@@ -38,8 +43,12 @@ export function useStored(key, initial, collection = null, enabled = true) {
       .then((records) => {
         if (!active) return;
         if (changedBeforeLoad.current) {
+          // The user edited this collection while the old snapshot was still
+          // loading. Push their edit instead of replacing it with old data.
+          changedBeforeLoad.current = false;
           return api.saveCollection(collection, valueRef.current);
-        } else if (records.length) {
+        }
+        if (records.length) {
           valueRef.current = records;
           setValue(records);
           try {
@@ -47,19 +56,19 @@ export function useStored(key, initial, collection = null, enabled = true) {
           } catch {
             /* local cache is optional */
           }
-        } else {
-          // PostgreSQL is authoritative when a collection is empty; do not
-          // restore deleted activities or enrollments from an old browser cache.
-          const initialRecords = [];
-          valueRef.current = initialRecords;
-          setValue(initialRecords);
-          try {
-            localStorage.setItem(key, JSON.stringify(initialRecords));
-          } catch {
-            /* local cache is optional */
-          }
-          return api.saveCollection(collection, initialRecords);
+          return undefined;
         }
+        // PostgreSQL is authoritative when a collection is empty; do not
+        // restore deleted activities or enrollments from an old browser cache.
+        const initialRecords = [];
+        valueRef.current = initialRecords;
+        setValue(initialRecords);
+        try {
+          localStorage.setItem(key, JSON.stringify(initialRecords));
+        } catch {
+          /* local cache is optional */
+        }
+        return api.saveCollection(collection, initialRecords);
       })
       .catch((error) =>
         console.error(
@@ -76,7 +85,7 @@ export function useStored(key, initial, collection = null, enabled = true) {
     return () => {
       active = false;
     };
-  }, [collection, enabled, initial, key]);
+  }, [collection, enabled, key]);
   useEffect(() => {
     if (!collection || !enabled || loadingRef.current || !databaseReady) return;
     const timer = window.setTimeout(() => {
@@ -92,7 +101,8 @@ export function useStored(key, initial, collection = null, enabled = true) {
     return () => window.clearTimeout(timer);
   }, [collection, databaseReady, enabled, value]);
   const set = (next) => {
-    if (collection && !databaseReady) changedBeforeLoad.current = true;
+    if (collection && (!databaseReady || loadingRef.current))
+      changedBeforeLoad.current = true;
     valueRef.current = next;
     setValue(next);
     try {

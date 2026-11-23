@@ -1,6 +1,8 @@
 export const nid = (list) => Math.max(0, ...list.map((x) => x.id)) + 1;
 export const fullName = (u) =>
   `${u.first} ${u.mi ? u.mi.toUpperCase() + ". " : ""}${u.last}`;
+export const displayName = (u) =>
+  u?.nickname ? `${fullName(u)} (${u.nickname})` : fullName(u);
 export const initials = (u) => (u.first[0] + u.last[0]).toUpperCase();
 export const fmtDate = (d) =>
   new Date(d + "T00:00:00").toLocaleDateString("en-PH", {

@@ -13,6 +13,8 @@ import StudentPage from "./pages/student/StudentPage.jsx";
 import InitialPasswordForm from "./pages/auth/InitialPasswordForm.jsx";
 import { authApi, userApi } from "./services/api.js";
 
+const EMPTY_ACADEMIC_YEARS = [];
+
 export default function App() {
   const [users, setUsers] = useState([]);
   const [me, setMe] = useState(null);
@@ -36,7 +38,7 @@ export default function App() {
   );
   const [academicYears, setAcademicYears] = useStored(
     "campus_serve_academic_years",
-    [],
+    EMPTY_ACADEMIC_YEARS,
     "academicYears",
     Boolean(me && !me.mustChangePassword),
   );
