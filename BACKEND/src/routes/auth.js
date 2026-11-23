@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { createHash, randomInt, timingSafeEqual } from "node:crypto";
 import pool from "../db.js";
-import { isSmtpConfigured, sendEmail } from "../mailer.js";
+import { isSmtpConfigured, sendEmail, smtpErrorDetails } from "../mailer.js";
 import {
   validate,
   loginSchema,
@@ -105,7 +105,7 @@ router.post("/signup/request", validate(signupRequestSchema), async (req, res, n
           text: `Welcome to Campus Serve! Your verification code is ${code}. It expires in 10 minutes. If you did not request this, ignore this email.`,
         });
       } catch (error) {
-        console.error("Sign-up verification email delivery failed:", error.message);
+        console.error("Sign-up verification email delivery failed:", JSON.stringify(smtpErrorDetails(error)));
         return res.status(502).json({ error: "The verification email could not be delivered. Check the SMTP settings and try again." });
       }
     } else if (process.env.NODE_ENV === "production")

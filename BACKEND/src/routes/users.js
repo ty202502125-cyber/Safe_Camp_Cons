@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import pool from "../db.js";
-import { sendEmail } from "../mailer.js";
+import { sendEmail, smtpErrorDetails } from "../mailer.js";
 import {
   validate,
   adminCreateSchema,
@@ -136,7 +136,7 @@ router.post("/", requireAuth, requirePasswordChangeComplete, requireRole("Super 
       await sendEmail(adminPasswordEmail(user, password));
       emailSent = true;
     } catch (error) {
-      console.error("Admin account email delivery failed:", error.message);
+      console.error("Admin account email delivery failed:", JSON.stringify(smtpErrorDetails(error)));
       if (process.env.NODE_ENV !== "production")
         console.warn(`[DEV ADMIN PASSWORD] ${normalizedEmail}: ${password}`);
     }
@@ -168,7 +168,7 @@ router.post(
       await logAudit(req, "admin_password_email_resend", user.id);
       res.json({ emailSent: true });
     } catch (error) {
-      console.error("Resend Admin password email failed:", error.message);
+      console.error("Resend Admin password email failed:", JSON.stringify(smtpErrorDetails(error)));
       res.status(502).json({ error: "Email delivery failed. Check SMTP settings and try again." });
     }
   },

@@ -9,7 +9,9 @@ async function request(path, options = {}) {
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok)
-    throw new Error(result.error || `API returned ${response.status}`);
+    throw new Error(
+      result.error || result.message || `API returned ${response.status}`,
+    );
   return result;
 }
 

@@ -8,6 +8,18 @@ export function isSmtpConfigured() {
   );
 }
 
+// Nodemailer puts the useful SMTP failure in these fields. Log them so a 502
+// can be traced without exposing the app password.
+export function smtpErrorDetails(error) {
+  return {
+    message: error?.message,
+    code: error?.code,
+    command: error?.command,
+    responseCode: error?.responseCode,
+    response: error?.response,
+  };
+}
+
 // SMTP_FROM is often written as `Name<address>` by hand. Normalize it to a
 // properly quoted address so mail providers do not reject the envelope sender.
 function senderAddress() {

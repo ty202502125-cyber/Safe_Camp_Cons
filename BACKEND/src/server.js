@@ -7,6 +7,13 @@ import { runMigrations } from "./migrate.js";
 const PORT = process.env.PORT || 5000;
 const HOST = process.env.HOST || "127.0.0.1";
 
+process.on("unhandledRejection", (reason) =>
+  console.error("Unhandled rejection:", reason),
+);
+process.on("uncaughtException", (error) =>
+  console.error("Uncaught exception:", error),
+);
+
 async function ensureSuperAdmin() {
   const existing = await pool.query("SELECT 1 FROM portal_users LIMIT 1");
   if (existing.rowCount) return;
@@ -57,9 +64,17 @@ try {
   await runMigrations();
   await ensureSuperAdmin();
 
-  app.listen(PORT, HOST, () =>
+  const server = app.listen(PORT, HOST, () =>
     console.log(`API listening at http://${HOST}:${PORT}`),
   );
+  server.on("error", (error) => {
+    if (error.code === "EADDRINUSE")
+      console.error(
+        `Port ${PORT} is already in use. Stop the other backend process (or change PORT in BACKEND/.env) and run npm start again.`,
+      );
+    else console.error("API server error:", error.message);
+    process.exit(1);
+  });
 } catch (error) {
   console.error(
     "Could not initialize PostgreSQL. Check BACKEND/.env and ensure the database exists.",

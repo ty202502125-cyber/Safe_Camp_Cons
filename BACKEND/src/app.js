@@ -36,6 +36,7 @@ const apiLimiter = rateLimit({
   limit: 300,
   standardHeaders: "draft-7",
   legacyHeaders: false,
+  message: { error: "Too many requests. Please wait a few minutes and try again." },
 });
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -43,7 +44,7 @@ const authLimiter = rateLimit({
   skipSuccessfulRequests: true,
   standardHeaders: "draft-7",
   legacyHeaders: false,
-  message: { error: "Too many attempts. Please try again later." },
+  message: { error: "Too many sign-in or verification attempts. Please wait a few minutes and try again." },
 });
 app.use("/api", apiLimiter);
 app.use("/api/auth", authLimiter);
