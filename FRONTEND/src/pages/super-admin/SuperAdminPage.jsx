@@ -1,7 +1,9 @@
 import { lazy, Suspense, useState } from "react";
 import SuperAdminHomePage, { PendingActivityTable } from "./HomePage.jsx";
 import {
+  fullName,
   displayName,
+  initials,
   fmtDate,
   Badge,
   accepted,
@@ -52,6 +54,8 @@ export function SuperAdminPage({ d, start }) {
   const [showTemporaryPassword, setShowTemporaryPassword] = useState(false);
   const [createdAdmin, setCreatedAdmin] = useState(null);
   const [resendingEmail, setResendingEmail] = useState(false);
+  const [previewAdmin, setPreviewAdmin] = useState(null);
+  const [zoomedPhoto, setZoomedPhoto] = useState(null);
   const admins = users.filter((u) => u.role === "Admin"),
     students = users.filter((u) => u.role === "User");
   const activeYear = activeAcademicYear(academicYears);
@@ -924,7 +928,12 @@ export function SuperAdminPage({ d, start }) {
                   return (
                   <tr key={u.id}>
                     <td>
-                      <div className="person-cell">
+                      <button
+                        type="button"
+                        className="person-cell student-detail-link"
+                        title="Preview Admin profile"
+                        onClick={() => setPreviewAdmin(u)}
+                      >
                         {u.avatarData && (
                           <img src={u.avatarData} alt="" />
                         )}
@@ -932,7 +941,7 @@ export function SuperAdminPage({ d, start }) {
                           <strong>{displayName(u)}</strong>
                           <small>{u.email}</small>
                         </div>
-                      </div>
+                      </button>
                     </td>
                     <td>{u.college}</td>
                     <td>
@@ -1168,6 +1177,137 @@ export function SuperAdminPage({ d, start }) {
         </Panel>
       )}
       {page === "My Profile" && <Profile d={d} />}
+      {previewAdmin && (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) =>
+            event.target === event.currentTarget && setPreviewAdmin(null)
+          }
+        >
+          <section
+            className="card activity-modal student-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-preview-title"
+          >
+            <div className="ph">
+              <div>
+                <span className="eyebrow">ADMIN PROFILE</span>
+                <h2 id="admin-preview-title">{displayName(previewAdmin)}</h2>
+              </div>
+              <button
+                className="tb"
+                type="button"
+                onClick={() => setPreviewAdmin(null)}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="student-popup-body">
+              <div className="student-popup-photo">
+                {previewAdmin.coverData && (
+                  <div
+                    className="pbanner"
+                    style={{
+                      backgroundImage: `url(${previewAdmin.coverData})`,
+                    }}
+                  />
+                )}
+                {previewAdmin.avatarData ? (
+                  <button
+                    type="button"
+                    className="student-photo-button"
+                    title="Enlarge profile picture"
+                    onClick={() => setZoomedPhoto(previewAdmin.avatarData)}
+                  >
+                    <img
+                      src={previewAdmin.avatarData}
+                      alt={`${fullName(previewAdmin)}'s profile picture`}
+                      className="student-photo-large"
+                    />
+                    <span className="student-photo-hint">Click to enlarge</span>
+                  </button>
+                ) : (
+                  <div className="av lg">{initials(previewAdmin)}</div>
+                )}
+              </div>
+
+              <div className="detail-grid">
+                <div>
+                  <span>Full name</span>
+                  <b>{fullName(previewAdmin)}</b>
+                </div>
+                <div>
+                  <span>Nickname</span>
+                  <b>{previewAdmin.nickname || "—"}</b>
+                </div>
+                <div>
+                  <span>ID number</span>
+                  <b>{previewAdmin.idno || "—"}</b>
+                </div>
+                <div>
+                  <span>Email</span>
+                  <b>{previewAdmin.email}</b>
+                </div>
+                <div>
+                  <span>College / office</span>
+                  <b>{previewAdmin.college}</b>
+                </div>
+                <div>
+                  <span>Status</span>
+                  <b>{previewAdmin.status}</b>
+                </div>
+                <div>
+                  <span>Students managed</span>
+                  <b>
+                    {
+                      students.filter(
+                        (student) => student.college === previewAdmin.college,
+                      ).length
+                    }
+                  </b>
+                </div>
+                <div>
+                  <span>Activities created</span>
+                  <b>{acts.filter((a) => a.by === previewAdmin.id).length}</b>
+                </div>
+              </div>
+            </div>
+
+            <div className="row" style={{ gap: 8, justifyContent: "flex-end" }}>
+              <button
+                className="tb"
+                type="button"
+                onClick={() => setPreviewAdmin(null)}
+              >
+                Close
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+      {zoomedPhoto && (
+        <div
+          className="modal-backdrop photo-zoom-backdrop"
+          role="presentation"
+          onMouseDown={(event) =>
+            event.target === event.currentTarget && setZoomedPhoto(null)
+          }
+        >
+          <div className="photo-zoom-box" role="dialog" aria-modal="true">
+            <img src={zoomedPhoto} alt="Enlarged Admin profile picture" />
+            <button
+              className="tb"
+              type="button"
+              onClick={() => setZoomedPhoto(null)}
+            >
+              Close picture
+            </button>
+          </div>
+        </div>
+      )}
     </Shell>
   );
 }
