@@ -1932,6 +1932,64 @@ td select {
   }
 }
 
+.student-detail-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.student-detail-link:hover strong {
+  text-decoration: underline;
+}
+
+.student-photo-button {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 38px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+.student-photo-large {
+  display: block;
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border: 4px solid var(--card);
+  border-radius: 18px;
+  background: var(--soft);
+  box-shadow: 0 10px 30px #16090d40;
+}
+.student-photo-hint {
+  color: var(--muted);
+  font-size: 11px;
+}
+.photo-zoom-backdrop {
+  z-index: 2000;
+}
+.photo-zoom-box {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  max-width: min(90vw, 720px);
+}
+.photo-zoom-box img {
+  display: block;
+  max-width: 100%;
+  max-height: 75vh;
+  object-fit: contain;
+  border-radius: 14px;
+  background: var(--soft);
+}
+
 .activity-shortcuts {
   display: grid;
   gap: 11px;

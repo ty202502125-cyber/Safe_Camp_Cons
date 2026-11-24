@@ -69,6 +69,7 @@ export function AdminPage({ d, start }) {
   const [editId, setEditId] = useState(null);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [zoomedPhoto, setZoomedPhoto] = useState(null);
   const [q, setQ] = useState("");
   const [sf, setSf] = useState("All");
   const [clockNow, setClockNow] = useState(() => new Date());
@@ -458,7 +459,14 @@ export function AdminPage({ d, start }) {
                 {collegeStudents.map((u) => (
                   <tr key={u.id}>
                     <td>
-                      <div className="person-cell">
+                      <button
+                        type="button"
+                        className="person-cell student-detail-link"
+                        title="View student details"
+                        onClick={() =>
+                          setSelectedStudent({ student: u, enrollment: null })
+                        }
+                      >
                         {u.avatarData && (
                           <img src={u.avatarData} alt="" />
                         )}
@@ -466,7 +474,7 @@ export function AdminPage({ d, start }) {
                           <strong>{displayName(u)}</strong>
                           <small>{u.email}</small>
                         </div>
-                      </div>
+                      </button>
                     </td>
                     <td>{u.idno}</td>
                     <td>{u.college}</td>
@@ -1201,7 +1209,9 @@ export function AdminPage({ d, start }) {
           >
             <div className="ph">
               <div>
-                <span className="eyebrow">STUDENT REQUEST</span>
+                <span className="eyebrow">
+                  {selectedStudent.enrollment ? "STUDENT REQUEST" : "STUDENT DETAILS"}
+                </span>
                 <h2 id="student-request-title">
                   {displayName(selectedStudent.student)}
                 </h2>
@@ -1225,17 +1235,27 @@ export function AdminPage({ d, start }) {
                     }}
                   />
                 )}
-                <div className="av lg">
-                  {selectedStudent.student.avatarData ? (
+                {selectedStudent.student.avatarData ? (
+                  <button
+                    type="button"
+                    className="student-photo-button"
+                    title="Enlarge profile picture"
+                    onClick={() =>
+                      setZoomedPhoto(selectedStudent.student.avatarData)
+                    }
+                  >
                     <img
                       src={selectedStudent.student.avatarData}
-                      alt=""
-                      className="av-photo"
+                      alt={`${fullName(selectedStudent.student)}'s profile picture`}
+                      className="student-photo-large"
                     />
-                  ) : (
-                    initials(selectedStudent.student)
-                  )}
-                </div>
+                    <span className="student-photo-hint">Click to enlarge</span>
+                  </button>
+                ) : (
+                  <div className="av lg">
+                    {initials(selectedStudent.student)}
+                  </div>
+                )}
               </div>
 
               <div className="detail-grid">
@@ -1266,15 +1286,17 @@ export function AdminPage({ d, start }) {
               </div>
             </div>
 
-            <p className="modal-description">
-              Request for{" "}
-              <strong>{act(selectedStudent.enrollment.actId)?.title}</strong> on{" "}
-              {fmtDate(act(selectedStudent.enrollment.actId)?.date)} ·{" "}
-              <Badge s={selectedStudent.enrollment.status} />
-            </p>
+            {selectedStudent.enrollment && (
+              <p className="modal-description">
+                Request for{" "}
+                <strong>{act(selectedStudent.enrollment.actId)?.title}</strong> on{" "}
+                {fmtDate(act(selectedStudent.enrollment.actId)?.date)} ·{" "}
+                <Badge s={selectedStudent.enrollment.status} />
+              </p>
+            )}
 
             <div className="row" style={{ gap: 8, justifyContent: "flex-end" }}>
-              {selectedStudent.enrollment.status === "Pending" ? (
+              {selectedStudent.enrollment?.status === "Pending" ? (
                 <>
                   <button
                     className="tb bad"
@@ -1303,11 +1325,31 @@ export function AdminPage({ d, start }) {
                   type="button"
                   onClick={() => setSelectedStudent(null)}
                 >
-                  Done
+                  {selectedStudent.enrollment ? "Done" : "Close"}
                 </button>
               )}
             </div>
           </section>
+        </div>
+      )}
+      {zoomedPhoto && (
+        <div
+          className="modal-backdrop photo-zoom-backdrop"
+          role="presentation"
+          onMouseDown={(event) =>
+            event.target === event.currentTarget && setZoomedPhoto(null)
+          }
+        >
+          <div className="photo-zoom-box" role="dialog" aria-modal="true">
+            <img src={zoomedPhoto} alt="Enlarged student profile picture" />
+            <button
+              className="tb"
+              type="button"
+              onClick={() => setZoomedPhoto(null)}
+            >
+              Close picture
+            </button>
+          </div>
         </div>
       )}
     </Shell>
