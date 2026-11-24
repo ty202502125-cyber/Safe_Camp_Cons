@@ -30,6 +30,7 @@ import {
   Shell,
   Profile,
 } from "../../shared/appCommon.jsx";
+import { MemoPreview } from "../../components/common/MemoPreview.jsx";
 
 const blank = {
   title: "",
@@ -695,6 +696,7 @@ export function AdminPage({ d, start }) {
                   >
                     Remove memo
                   </button>
+                  <MemoPreview memo={form.memo} compact />
                 </div>
               )}
               <label>
