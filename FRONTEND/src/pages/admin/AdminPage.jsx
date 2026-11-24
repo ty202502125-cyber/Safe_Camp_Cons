@@ -42,7 +42,7 @@ const blank = {
   hours: 3,
   slots: 20,
   colleges: [...COLLEGES],
-  image: "",
+  images: [],
   mandatory: false,
   registrationStart: dateKey(),
   registrationEnd: "",
@@ -184,18 +184,42 @@ export function AdminPage({ d, start }) {
     setForm(next);
   };
   async function chooseImage(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/"))
-      return flash("Choose an image file.", true);
-    if (file.size > 10 * 1024 * 1024)
-      return flash("Choose an image smaller than 10 MB.", true);
-    try {
-      const image = await compressActivityImage(file);
-      setForm((current) => (current ? { ...current, image } : current));
-    } catch (error) {
-      flash(error.message || "Could not load that image.", true);
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!files.length) return;
+    const added = [];
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) {
+        flash("Skipped a non-image file.", true);
+        continue;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        flash("Skipped an image larger than 10 MB.", true);
+        continue;
+      }
+      try {
+        added.push(await compressActivityImage(file));
+      } catch (error) {
+        flash(error.message || "Could not load that image.", true);
+      }
     }
+    if (!added.length) return;
+    setForm((current) =>
+      current
+        ? { ...current, images: [...(current.images || []), ...added] }
+        : current,
+    );
+    flash(`${added.length} photo${added.length === 1 ? "" : "s"} added.`);
+  }
+  function removeImage(index) {
+    setForm((current) =>
+      current
+        ? {
+            ...current,
+            images: (current.images || []).filter((_, i) => i !== index),
+          }
+        : current,
+    );
   }
   function chooseMemo(e) {
     const file = e.target.files?.[0];
@@ -300,6 +324,9 @@ export function AdminPage({ d, start }) {
       hours: Number(form.hours) || 1,
       slots: Number(form.slots) || 1,
       mandatory: Boolean(form.mandatory),
+      images: form.images || [],
+      // Keep the first photo in the old single-photo field for older screens.
+      image: form.images?.[0] || "",
     };
     if (!editId) {
       data.schoolYear = activeYear.year;
@@ -616,24 +643,32 @@ export function AdminPage({ d, start }) {
                 />
               </label>
               <label className="w">
-                Activity photo{" "}
-                <span className="opt">(optional, JPG/PNG/WebP; max 10 MB)</span>
+                Activity photos{" "}
+                <span className="opt">
+                  (optional — choose as many JPG/PNG/WebP photos as you like;
+                  max 10 MB each)
+                </span>
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
+                  multiple
                   onChange={chooseImage}
                 />
               </label>
-              {form.image && (
-                <div className="activity-upload-preview w">
-                  <img src={form.image} alt="Activity photo preview" />
-                  <button
-                    type="button"
-                    className="tb bad"
-                    onClick={() => setForm({ ...form, image: "" })}
-                  >
-                    Remove photo
-                  </button>
+              {form.images?.length > 0 && (
+                <div className="activity-photo-list w">
+                  {form.images.map((photo, index) => (
+                    <div className="activity-photo-item" key={index}>
+                      <img src={photo} alt={`Activity photo ${index + 1}`} />
+                      <button
+                        type="button"
+                        className="tb bad"
+                        onClick={() => removeImage(index)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
               <label className="w">
@@ -899,7 +934,11 @@ export function AdminPage({ d, start }) {
                                     collegeOptions.includes(college),
                                   )
                                 : [...collegeOptions],
-                              image: a.image || "",
+                              images: Array.isArray(a.images)
+                                ? a.images
+                                : a.image
+                                  ? [a.image]
+                                  : [],
                               mandatory: Boolean(a.mandatory),
                               registrationStart:
                                 a.registrationStart || dateKey(),

@@ -28,7 +28,8 @@ app.use(
 );
 
 // Middleware to parse incoming JSON requests.
-app.use(express.json({ limit: "25mb" }));
+// Activity photos are stored as resized data URLs. Allow many per activity.
+app.use(express.json({ limit: "100mb" }));
 app.use(cookieParser());
 
 // Health checks are registered before the limiter so uptime monitors never

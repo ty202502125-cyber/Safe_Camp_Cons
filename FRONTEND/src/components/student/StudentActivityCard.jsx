@@ -33,7 +33,7 @@ export default function StudentActivityCard({
         type="button"
         className="aimg"
         style={{
-          backgroundImage: `url(${activity.image || PHOTO[activity.category] || IMG.campus})`,
+          backgroundImage: `url(${activity.images?.[0] || activity.image || PHOTO[activity.category] || IMG.campus})`,
         }}
         onClick={() => onSelect(activity)}
         aria-label={`View ${activity.title} details`}

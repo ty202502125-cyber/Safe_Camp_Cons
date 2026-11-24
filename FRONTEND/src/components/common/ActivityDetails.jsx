@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { IMG, PHOTO } from "../../data/appData.js";
 import {
   Badge,
@@ -23,8 +24,14 @@ export function ActivityDetails({
   clockNow,
   close,
 }) {
+  const [zoomedPhoto, setZoomedPhoto] = useState(null);
   if (!activity) return null;
   const now = clockNow;
+  const photos = Array.isArray(activity.images) && activity.images.length
+    ? activity.images
+    : activity.image
+      ? [activity.image]
+      : [];
   const coordinator = users.find((u) => u.id === activity.by);
   const participants = enrollments.filter(
     (e) => e.actId === activity.id && e.status === "Accepted",
@@ -69,11 +76,26 @@ export function ActivityDetails({
         <div
           className="activity-detail-image"
           style={{
-            backgroundImage: `url(${activity.image || PHOTO[activity.category] || IMG.campus})`,
+            backgroundImage: `url(${photos[0] || PHOTO[activity.category] || IMG.campus})`,
           }}
           role="img"
           aria-label={`${activity.title} event photo`}
         />
+        {photos.length > 1 && (
+          <div className="activity-photo-gallery">
+            {photos.map((photo, index) => (
+              <button
+                type="button"
+                className="activity-photo-thumb"
+                key={index}
+                title={`View photo ${index + 1}`}
+                onClick={() => setZoomedPhoto(photo)}
+              >
+                <img src={photo} alt={`${activity.title} photo ${index + 1}`} />
+              </button>
+            ))}
+          </div>
+        )}
         <p className="modal-description">{activity.desc}</p>
         <div className="detail-grid">
           <span>
@@ -174,6 +196,26 @@ export function ActivityDetails({
             </tbody>
           </table>
         </div>
+        {zoomedPhoto && (
+          <div
+            className="modal-backdrop photo-zoom-backdrop"
+            role="presentation"
+            onMouseDown={(event) =>
+              event.target === event.currentTarget && setZoomedPhoto(null)
+            }
+          >
+            <div className="photo-zoom-box" role="dialog" aria-modal="true">
+              <img src={zoomedPhoto} alt="Enlarged activity photo" />
+              <button
+                className="tb"
+                type="button"
+                onClick={() => setZoomedPhoto(null)}
+              >
+                Close picture
+              </button>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );
