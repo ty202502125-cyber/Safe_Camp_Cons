@@ -104,6 +104,22 @@ export function AdminPage({ d, start }) {
     .filter((org) => collegeHasActiveAdmin(org.name, users, organizations))
     .map((org) => org.name);
   const assignedCollege = collegeOptions.includes(me.college) ? me.college : "";
+  const allCollegesSelected =
+    collegeOptions.length > 0 &&
+    collegeOptions.every(
+      (college) =>
+        form?.colleges?.includes(college) || college === assignedCollege,
+    );
+  function toggleAllColleges() {
+    const next = allCollegesSelected
+      ? assignedCollege
+        ? [assignedCollege]
+        : []
+      : [...collegeOptions];
+    setForm((current) =>
+      current ? { ...current, colleges: next } : current,
+    );
+  }
   const mine = acts.filter((a) => a.by === me.id);
   const activeYear = activeAcademicYear(academicYears);
   const isLocked = (activity) => isArchivedActivity(activity, academicYears);
@@ -785,6 +801,16 @@ export function AdminPage({ d, start }) {
                   college is always included; select other colleges to invite
                   their students.
                 </p>
+                <button
+                  className="tb"
+                  type="button"
+                  onClick={toggleAllColleges}
+                  disabled={!collegeOptions.length}
+                >
+                  {allCollegesSelected
+                    ? "Clear other colleges"
+                    : "Select all colleges"}
+                </button>
                 <div className="college-options">
                   {collegeOptions.map((college) => (
                     <label key={college}>

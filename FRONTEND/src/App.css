@@ -2513,6 +2513,9 @@ button {
   font-size: 12px;
   line-height: 1.6;
 }
+.college-picker > .tb {
+  margin: 0 0 12px;
+}
 .college-options {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
