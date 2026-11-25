@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import AdminHomePage from "./HomePage.jsx";
 import AdminRegistrationBoard from "../../components/admin/AdminRegistrationBoard.jsx";
 import AdminMandatoryBoard from "../../components/admin/AdminMandatoryBoard.jsx";
+import AdminActivitiesBoard from "../../components/admin/AdminActivitiesBoard.jsx";
 import {
   CATEGORIES,
   COLLEGES,
@@ -886,13 +887,29 @@ export function AdminPage({ d, start }) {
               </button>
             </form>
           )}
-          <div className="filters">
-            <input
-              aria-label="Search"
-              placeholder="Search activities…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
+          <div className="reg-toolbar">
+            <div className="reg-search">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+              <input
+                aria-label="Search"
+                placeholder="Search activities…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+              {q && (
+                <button
+                  type="button"
+                  className="reg-search-clear"
+                  aria-label="Clear search"
+                  onClick={() => setQ("")}
+                >
+                  ×
+                </button>
+              )}
+            </div>
             <select value={sf} onChange={(e) => setSf(e.target.value)}>
               {[
                 "All",
@@ -906,115 +923,18 @@ export function AdminPage({ d, start }) {
               ))}
             </select>
           </div>
-          <div className="tw admin-work-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>ACTIVITY</th>
-                  <th>PERIOD</th>
-                  <th>SCHEDULE</th>
-                  <th>PRE-REGISTRATION</th>
-                  <th>HOURS</th>
-                  <th>ENROLLED</th>
-                  <th>REQUIRED</th>
-                  <th>STATUS</th>
-                  <th>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {shown.map((a) => {
-                  const locked = isLocked(a);
-                  return (
-                    <tr key={a.id}>
-                      <td>
-                        <button
-                          type="button"
-                          className="activity-link"
-                          onClick={() => setSelectedActivity(a)}
-                        >
-                          <strong>{a.title}</strong>
-                        </button>
-                        <small>{a.category}</small>
-                      </td>
-                      <td>
-                        {periodLabel(a)}
-                        {locked && <small>Archived — read-only</small>}
-                      </td>
-                      <td>
-                        {fmtDate(a.date)} · {timeRange(a)}
-                        <small>{a.location}</small>
-                      </td>
-                      <td>
-                        {registrationLabel(a)}
-                        <small>{registrationState(a, clockNow).label}</small>
-                      </td>
-                      <td>{a.hours} h</td>
-                      <td>
-                        {accepted(enr, a)} / {a.slots}
-                      </td>
-                      <td>
-                        {a.mandatory ? (
-                          <Badge s="Mandatory" />
-                        ) : (
-                          <small>Optional</small>
-                        )}
-                        {a.mandatory && (
-                          <small>
-                            {completedCount(a)} / {eligibleStudents(a).length}{" "}
-                            completed
-                          </small>
-                        )}
-                      </td>
-                      <td>
-                        <Badge s={statusOf(a)} />
-                      </td>
-                      <td>
-                        {statusOf(a) === "Open" && (
-                          <button
-                            type="button"
-                            className="tb"
-                            disabled={locked}
-                            onClick={() => setStatus(a, "Ongoing")}
-                          >
-                            Start
-                          </button>
-                        )}
-                        {statusOf(a) === "Ongoing" && (
-                          <button
-                            type="button"
-                            className="tb"
-                            disabled={locked}
-                            onClick={() => setStatus(a, "Completed")}
-                          >
-                            Complete
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          className="tb"
-                          disabled={locked}
-                          onClick={() => editActivity(a)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="tb bad"
-                          disabled={locked}
-                          onClick={() => remove(a)}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {shown.length === 0 && (
-                  <Empty cols={9} text="No activities found." />
-                )}
-              </tbody>
-            </table>
-          </div>
+          <AdminActivitiesBoard
+            activities={shown}
+            enrollments={enr}
+            users={users}
+            clockNow={clockNow}
+            onSelectActivity={setSelectedActivity}
+            onEditActivity={editActivity}
+            onStart={(a) => setStatus(a, "Ongoing")}
+            onComplete={(a) => setStatus(a, "Completed")}
+            onDelete={remove}
+            locked={isLocked}
+          />
         </Panel>
       )}
       {page === "Mandatory" && (
