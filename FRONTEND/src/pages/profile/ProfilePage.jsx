@@ -1,26 +1,38 @@
 import { useEffect, useState } from "react";
 import { Panel } from "../../components/common/SharedUi.jsx";
 import {
-  compressActivityImage,
   displayName,
   fullName,
   initials,
+  compressActivityImage,
 } from "../../utils/appUtils.jsx";
-
-const emptyProfile = (me) => ({
-  nickname: me?.nickname || "",
-  avatarData: me?.avatarData || "",
-  coverData: me?.coverData || "",
-});
 
 export function Profile({ d }) {
   const { me, flash } = d;
-  const [form, setForm] = useState(() => emptyProfile(me));
+  const [menu, setMenu] = useState(null);
+  const [avatarEditing, setAvatarEditing] = useState(false);
+  const [coverEditing, setCoverEditing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [nicknameOpen, setNicknameOpen] = useState(false);
+  const [nicknameDraft, setNicknameDraft] = useState(me?.nickname || "");
 
   useEffect(() => {
-    setForm(emptyProfile(me));
-  }, [me?.id, me?.nickname, me?.avatarData, me?.coverData]);
+    setNicknameDraft(me?.nickname || "");
+  }, [me?.id, me?.nickname]);
+
+  async function saveField(field, value, message) {
+    setBusy(true);
+    try {
+      await d.updateProfile({ [field]: value });
+      flash(message);
+      return true;
+    } catch (error) {
+      flash(error.message, true);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function chooseImage(event, field) {
     const file = event.target.files?.[0];
@@ -32,23 +44,30 @@ export function Profile({ d }) {
       return flash("Image must be smaller than 10 MB.", true);
     try {
       const data = await compressActivityImage(file);
-      setForm((current) => ({ ...current, [field]: data }));
+      const saved = await saveField(
+        field,
+        data,
+        field === "avatarData" ? "Profile picture updated." : "Cover photo updated.",
+      );
+      if (saved) setMenu(null);
     } catch (error) {
       flash(error.message, true);
     }
   }
 
-  async function saveProfile(event) {
-    event.preventDefault();
-    setBusy(true);
-    try {
-      await d.updateProfile(form);
-      flash("Profile updated.");
-    } catch (error) {
-      flash(error.message, true);
-    } finally {
-      setBusy(false);
-    }
+  async function removeImage(field) {
+    const saved = await saveField(
+      field,
+      "",
+      field === "avatarData" ? "Profile picture removed." : "Cover photo removed.",
+    );
+    if (saved) setMenu(null);
+  }
+
+  async function saveNickname() {
+    const value = nicknameDraft.trim();
+    const saved = await saveField("nickname", value, "Nickname saved.");
+    if (saved) setNicknameOpen(false);
   }
 
   async function changePw(e) {
@@ -66,24 +85,91 @@ export function Profile({ d }) {
     }
   }
 
-  const coverStyle = form.coverData
-    ? { backgroundImage: `url(${form.coverData})` }
+  const coverStyle = me?.coverData
+    ? { backgroundImage: `url(${me.coverData})` }
     : { backgroundColor: "#ffffff", backgroundImage: "none" };
+  const menuField = menu === "cover" ? "coverData" : "avatarData";
+  const menuData = menu ? me?.[menuField] || "" : "";
 
   return (
     <>
       <section className="card pcard">
-        <div className="pbanner" style={coverStyle} />
+        <button
+          type="button"
+          className="pbanner profile-banner-button"
+          style={coverStyle}
+          title="View cover photo"
+          aria-label="View cover photo"
+          onClick={() => {
+            setCoverEditing(false);
+            setMenu("cover");
+          }}
+        >
+          <span className="profile-photo-hint">Click to view cover</span>
+        </button>
         <div className="pbody">
-          <div className="av lg">
-            {form.avatarData ? (
-              <img src={form.avatarData} alt="" className="av-photo" />
+          <button
+            type="button"
+            className="av lg profile-avatar-button"
+            title="View profile picture"
+            aria-label="View profile picture"
+            onClick={() => {
+              setAvatarEditing(false);
+              setMenu("avatar");
+            }}
+          >
+            {me?.avatarData ? (
+              <img src={me.avatarData} alt="" className="av-photo" />
             ) : (
               initials(me)
             )}
-          </div>
+          </button>
           <div className="pname">
-            <h2>{displayName({ ...me, nickname: form.nickname })}</h2>
+            {nicknameOpen ? (
+              <div className="nickname-editor">
+                <input
+                  value={nicknameDraft}
+                  maxLength={30}
+                  placeholder="Nickname"
+                  autoFocus
+                  onChange={(event) => setNicknameDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") saveNickname();
+                    if (event.key === "Escape") setNicknameOpen(false);
+                  }}
+                />
+                <button
+                  className="tb"
+                  type="button"
+                  disabled={busy}
+                  onClick={saveNickname}
+                >
+                  Save
+                </button>
+                <button
+                  className="tb"
+                  type="button"
+                  onClick={() => setNicknameOpen(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <>
+                <h2>{displayName(me)}</h2>
+                <button
+                  className="tb nickname-button"
+                  type="button"
+                  title="Edit nickname"
+                  onClick={() => {
+                    setNicknameDraft(me?.nickname || "");
+                    setNicknameOpen(true);
+                  }}
+                >
+                  Edit nickname
+                </button>
+              </>
+            )}
             <span className={`bd ${me.role === "Super Admin" ? "gold" : "ok"}`}>
               {me.role}
             </span>
@@ -96,96 +182,6 @@ export function Profile({ d }) {
           </div>
         </div>
       </section>
-
-      <Panel
-        eyebrow="MY PROFILE"
-        title="Edit your profile"
-        sub="Choose a nickname and upload your own photos. Images are resized and saved with your account, so they appear across the portal."
-      >
-        <form className="form" onSubmit={saveProfile}>
-          <label className="w">
-            Nickname
-            <input
-              name="nickname"
-              value={form.nickname}
-              maxLength={30}
-              placeholder="What should classmates and admins call you?"
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  nickname: event.target.value,
-                }))
-              }
-            />
-          </label>
-
-          <div className="profile-upload-row">
-            <div>
-              <span className="profile-upload-label">Profile picture</span>
-              <div className="activity-upload-preview">
-                <div className="av lg">
-                  {form.avatarData ? (
-                    <img src={form.avatarData} alt="" className="av-photo" />
-                  ) : (
-                    initials(me)
-                  )}
-                </div>
-                <div className="profile-upload-actions">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    id="avatar-input"
-                    onChange={(event) => chooseImage(event, "avatarData")}
-                  />
-                  {form.avatarData && (
-                    <button
-                      className="tb"
-                      type="button"
-                      onClick={() =>
-                        setForm((current) => ({ ...current, avatarData: "" }))
-                      }
-                    >
-                      Remove picture
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <span className="profile-upload-label">Cover photo</span>
-              <div className="activity-upload-preview">
-                {form.coverData && (
-                  <img src={form.coverData} alt="Cover preview" />
-                )}
-                <div className="profile-upload-actions">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    id="cover-input"
-                    onChange={(event) => chooseImage(event, "coverData")}
-                  />
-                  {form.coverData && (
-                    <button
-                      className="tb"
-                      type="button"
-                      onClick={() =>
-                        setForm((current) => ({ ...current, coverData: "" }))
-                      }
-                    >
-                      Remove cover
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <button className="btn sm" type="submit" disabled={busy}>
-            {busy ? "Saving…" : "Save profile"}
-          </button>
-        </form>
-      </Panel>
 
       <div className="two eq">
         <Panel
@@ -263,6 +259,158 @@ export function Profile({ d }) {
           </form>
         </Panel>
       </div>
+
+      {menu === "avatar" && (
+        <div
+          className="modal-backdrop photo-zoom-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setAvatarEditing(false);
+              setMenu(null);
+            }
+          }}
+        >
+          <div
+            className="profile-photo-view"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Profile picture"
+          >
+            <div className="profile-photo-view-image">
+              {menuData ? (
+                <img src={menuData} alt="Your profile picture" />
+              ) : (
+                <div className="av lg">{initials(me)}</div>
+              )}
+            </div>
+            <div className="profile-photo-view-actions">
+              <button
+                className="tb primary"
+                type="button"
+                aria-expanded={avatarEditing}
+                onClick={() => setAvatarEditing((open) => !open)}
+              >
+                Edit
+              </button>
+              <button
+                className="tb"
+                type="button"
+                onClick={() => {
+                  setAvatarEditing(false);
+                  setMenu(null);
+                }}
+              >
+                Close
+              </button>
+            </div>
+            {avatarEditing && (
+              <div className="profile-photo-edit-options">
+                <label className="tb profile-file-label">
+                  {busy ? "Saving…" : menuData ? "Change picture" : "Add picture"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    disabled={busy}
+                    onChange={(event) => chooseImage(event, "avatarData")}
+                  />
+                </label>
+                {menuData && (
+                  <button
+                    className="tb bad"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => removeImage("avatarData")}
+                  >
+                    Remove picture
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {menu === "cover" && (
+        <div
+          className="modal-backdrop photo-zoom-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setCoverEditing(false);
+              setMenu(null);
+            }
+          }}
+        >
+          <div
+            className="profile-photo-view"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Cover photo"
+          >
+            <div className="profile-photo-view-image cover">
+              {menuData ? (
+                <img
+                  src={menuData}
+                  alt="Your cover photo"
+                  className="profile-cover-preview"
+                />
+              ) : (
+                <div className="profile-cover-empty">No cover photo yet.</div>
+              )}
+            </div>
+            <div className="profile-photo-view-actions">
+              <button
+                className="tb primary"
+                type="button"
+                aria-expanded={coverEditing}
+                onClick={() => setCoverEditing((open) => !open)}
+              >
+                Edit
+              </button>
+              <button
+                className="tb"
+                type="button"
+                onClick={() => {
+                  setCoverEditing(false);
+                  setMenu(null);
+                }}
+              >
+                Close
+              </button>
+            </div>
+            {coverEditing && (
+              <div className="profile-photo-edit-options">
+                <label className="tb profile-file-label">
+                  {busy
+                    ? "Saving…"
+                    : menuData
+                      ? "Change cover photo"
+                      : "Add cover photo"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    disabled={busy}
+                    onChange={(event) => chooseImage(event, "coverData")}
+                  />
+                </label>
+                {menuData && (
+                  <button
+                    className="tb bad"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => removeImage("coverData")}
+                  >
+                    Remove cover
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }
