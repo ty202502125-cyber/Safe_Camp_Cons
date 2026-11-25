@@ -2920,6 +2920,98 @@ td select {
   }
 }
 
+/* Attendance & Hours: review logs in calm, grouped cards. */
+.attendance-stat.review b {
+  color: #d97706;
+}
+
+.attendance-stat.hours b {
+  color: #177b4b;
+}
+
+.attendance-toolbar .reg-search {
+  flex: 1 1 280px;
+}
+
+.attendance-card {
+  grid-template-columns:
+    minmax(190px, 1.25fr)
+    minmax(130px, 1fr)
+    minmax(110px, 0.75fr)
+    minmax(150px, auto);
+  align-items: center;
+}
+
+.attendance-log {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.attendance-log strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.attendance-log span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attendance-hours {
+  display: grid;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.attendance-hours strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.attendance-hours-bar {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.attendance-hours-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--g);
+}
+
+.attendance-review {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.attendance-review .reg-actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 700px) {
+  .attendance-card {
+    grid-template-columns: 1fr;
+  }
+  .attendance-review {
+    justify-items: start;
+  }
+  .attendance-review .reg-actions {
+    justify-content: flex-start;
+  }
+  .attendance-log span {
+    white-space: normal;
+  }
+}
+
 @media (max-width: 560px) {
   .mandatory-admin-grid {
     grid-template-columns: 1fr;

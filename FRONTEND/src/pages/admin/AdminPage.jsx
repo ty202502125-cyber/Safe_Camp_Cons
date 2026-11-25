@@ -3,6 +3,7 @@ import AdminHomePage from "./HomePage.jsx";
 import AdminRegistrationBoard from "../../components/admin/AdminRegistrationBoard.jsx";
 import AdminMandatoryBoard from "../../components/admin/AdminMandatoryBoard.jsx";
 import AdminActivitiesBoard from "../../components/admin/AdminActivitiesBoard.jsx";
+import AdminAttendanceBoard from "../../components/admin/AdminAttendanceBoard.jsx";
 import {
   CATEGORIES,
   COLLEGES,
@@ -979,85 +980,17 @@ export function AdminPage({ d, start }) {
           title="Student attendance & hours"
           sub="Students log their own attendance and hours. Verify each entry, or reject it so the student can resubmit."
         >
-          <div className="tw admin-work-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>STUDENT</th>
-                  <th>ACTIVITY</th>
-                  <th>LOG DATE</th>
-                  <th>HOURS</th>
-                  <th>STATUS</th>
-                  <th>REVIEW</th>
-                </tr>
-              </thead>
-              <tbody>
-                {myEnr
-                  .filter((e) => e.status === "Accepted")
-                  .map((e) => {
-                    const a = act(e.actId);
-                    return (
-                      <tr key={e.id}>
-                        <td>
-                          <strong>{displayName(stu(e.userId))}</strong>
-                          <small>{stu(e.userId).college}</small>
-                        </td>
-                        <td>
-                          {a.title}
-                          <small>{statusOf(a)}</small>
-                        </td>
-                        <td>
-                          {e.attended ? fmtDate(e.logDate) : "—"}
-                          {e.submittedAt && (
-                            <small title={e.submittedAt}>
-                              Submitted {fmtDate(e.submittedAt)}
-                            </small>
-                          )}
-                        </td>
-                        <td>{e.attended ? `${e.hours} / ${a.hours}` : "—"}</td>
-                        <td>
-                          {e.attended ? (
-                            <Badge s={e.verified ? "Verified" : "Logged"} />
-                          ) : (
-                            <small>Not logged yet</small>
-                          )}
-                          {e.verifiedAt && (
-                            <small title={e.verifiedAt}>
-                              {fmtDate(e.verifiedAt)}
-                            </small>
-                          )}
-                        </td>
-                        <td>
-                          {e.attended && !e.verified ? (
-                            <>
-                              <button
-                                type="button"
-                                className="tb"
-                                onClick={() => verify(e)}
-                              >
-                                Verify
-                              </button>
-                              <button
-                                type="button"
-                                className="tb bad"
-                                onClick={() => rejectLog(e)}
-                              >
-                                Reject
-                              </button>
-                            </>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                {myEnr.filter((e) => e.status === "Accepted").length === 0 && (
-                  <Empty cols={6} text="No accepted volunteers yet." />
-                )}
-              </tbody>
-            </table>
-          </div>
+          <AdminAttendanceBoard
+            enrollments={myEnr}
+            activities={mine}
+            users={users}
+            clockNow={clockNow}
+            onVerify={verify}
+            onReject={rejectLog}
+            onSelectStudent={setSelectedStudent}
+            onSelectActivity={setSelectedActivity}
+            locked={isLocked}
+          />
         </Panel>
       )}
       {page === "My Profile" && <Profile d={d} />}
