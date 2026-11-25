@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import StudentHomePage from "./HomePage.jsx";
 import StudentActivityCard from "../../components/student/StudentActivityCard.jsx";
 import MandatoryActivityCard from "../../components/student/MandatoryActivityCard.jsx";
+import StudentEnrollmentsBoard from "../../components/student/StudentEnrollmentsBoard.jsx";
+import StudentHoursBoard from "../../components/student/StudentHoursBoard.jsx";
 import {
   CATEGORIES,
   nid,
@@ -9,13 +11,11 @@ import {
   initials,
   fmtDate,
   fmtTime,
-  timeRange,
   hasActivityEnded,
   isRegistrationOpen,
   registrationLabel,
   registrationState,
   activityStatus,
-  Badge,
   Logo,
   ThemeToggle,
   ActivityDetails,
@@ -445,114 +445,19 @@ export function StudentPage({ d, start }) {
                 </button>
               </form>
             )}
-            <div className="tw">
-              <table>
-                <thead>
-                  <tr>
-                    <th>ACTIVITY</th>
-                    <th>SCHEDULE</th>
-                    <th>REQUEST</th>
-                    <th>MY ATTENDANCE</th>
-                    <th>CERTIFICATE</th>
-                    <th>ACTION</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mine.map((e) => {
-                    const a = act(e.actId),
-                      can =
-                        e.status === "Accepted" &&
-                        hasActivityEnded(a, clockNow);
-                    return (
-                      <tr key={e.id}>
-                        <td>
-                          <strong>{a.title}</strong>
-                          <small>{a.category}</small>
-                        </td>
-                        <td>
-                          {fmtDate(a.date)} · {timeRange(a)}
-                          <small>{a.location}</small>
-                        </td>
-                        <td>
-                          <Badge s={e.status} />
-                          <small>Activity: {activityStatus(a, clockNow)}</small>
-                        </td>
-                        <td>
-                          {e.attended ? (
-                            <>
-                              {e.hours} / {a.hours} h
-                              <small>
-                                {fmtDate(e.logDate)} ·{" "}
-                                {e.verified ? "Verified" : "Awaiting review"}
-                              </small>
-                            </>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                        <td>
-                          {done(e) ? (
-                            <span className="bd ok"> Released</span>
-                          ) : e.status === "Accepted" ? (
-                            <small>
-                              {e.attended && !e.verified
-                                ? "Awaiting coordinator verification"
-                                : `Full ${a.hours} h + verification + activity completion required`}
-                            </small>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                        <td>
-                          {e.status === "Pending" && (
-                            <button
-                              type="button"
-                              className="tb bad"
-                              onClick={() => cancel(e)}
-                            >
-                              Cancel
-                            </button>
-                          )}
-                          {e.status === "Accepted" && !can && (
-                            <small>
-                              Attendance opens after {fmtTime(a.endTime)} on{" "}
-                              {fmtDate(a.date)}.
-                            </small>
-                          )}
-                          {e.status === "Accepted" && can && !e.verified && (
-                            <button
-                              type="button"
-                              className="tb"
-                              onClick={() => openLog(e)}
-                            >
-                              {e.attended ? "Edit hours" : "Submit attendance"}
-                            </button>
-                          )}
-                          {done(e) && (
-                            <button
-                              type="button"
-                              className="tb"
-                              onClick={() => {
-                                setCertKey("e" + e.id);
-                                setPage("Hours & Certificate");
-                              }}
-                            >
-                              View certificate
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {mine.length === 0 && (
-                    <Empty
-                      cols={6}
-                      text="You haven’t enrolled in any activity yet."
-                    />
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <StudentEnrollmentsBoard
+              enrollments={mine}
+              activities={acts}
+              clockNow={clockNow}
+              done={done}
+              onSelect={setSelectedActivity}
+              onCancel={cancel}
+              onLog={openLog}
+              onCertificate={(e) => {
+                setCertKey("e" + e.id);
+                setPage("Hours & Certificate");
+              }}
+            />
           </Panel>
         )}
         {page === "Hours & Certificate" && (
@@ -561,47 +466,14 @@ export function StudentPage({ d, start }) {
             title="Hours report & certificates"
             sub={`Total logged: ${plural(total, "hour")} across ${plural(logged.length, "activity").replace("activitys", "activities")}. Certificates use the name and college saved in your profile.`}
           >
-            <div className="tw noprint">
-              <table>
-                <thead>
-                  <tr>
-                    <th>ACTIVITY</th>
-                    <th>DATE</th>
-                    <th>HOURS</th>
-                    <th>REVIEW</th>
-                    <th>CERTIFICATE</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logged.map((e) => (
-                    <tr key={e.id}>
-                      <td>
-                        <strong>{act(e.actId).title}</strong>
-                      </td>
-                      <td>{fmtDate(e.logDate)}</td>
-                      <td>
-                        {e.hours} / {act(e.actId).hours}
-                      </td>
-                      <td>
-                        <Badge s={e.verified ? "Verified" : "Logged"} />
-                      </td>
-                      <td>
-                        {done(e) ? (
-                          <span className="bd ok"> Released</span>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {logged.length === 0 && (
-                    <Empty
-                      cols={5}
-                      text="No hours logged yet. Log your attendance under My Enrollments."
-                    />
-                  )}
-                </tbody>
-              </table>
+            <div className="noprint">
+              <StudentHoursBoard
+                logs={logged}
+                activities={acts}
+                done={done}
+                onSelect={setSelectedActivity}
+                onCertificate={(e) => setCertKey("e" + e.id)}
+              />
             </div>
             {cert ? (
               <>

@@ -3012,6 +3012,348 @@ td select {
   }
 }
 
+/* Student account: clean enrollment and hours cards. */
+.stu-record-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.stu-record-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.stu-record-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(68, 12, 26, 0.1);
+}
+
+.stu-record-cover {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 120px;
+  padding: 0;
+  border: 0;
+  background-position: center;
+  background-size: cover;
+  cursor: pointer;
+}
+
+.stu-record-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.52));
+}
+
+.stu-record-cover-badges {
+  position: absolute;
+  z-index: 1;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: calc(100% - 20px);
+}
+
+.stu-record-cover-hint {
+  position: absolute;
+  z-index: 1;
+  right: 10px;
+  bottom: 10px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.stu-record-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+}
+
+.stu-record-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.stu-record-body h3 {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.stu-record-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.stu-record-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--soft);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.stu-record-meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stu-record-progress > div:first-child {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.stu-record-progress > div:first-child span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--g);
+}
+
+.stu-record-count {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.stu-record-count b {
+  color: var(--ink);
+}
+
+.stu-record-statusline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.stu-record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.stu-record-note {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+@media (max-width: 560px) {
+  .stu-record-grid {
+    grid-template-columns: 1fr;
+  }
+  .stu-record-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Student Accounts: clear student cards with safe account actions. */
+.student-account-stats .active b {
+  color: #177b4b;
+}
+
+.student-account-stats .inactive b {
+  color: #b5122b;
+}
+
+.student-account-stats .hours b {
+  color: #177b4b;
+}
+
+.student-account-toolbar .reg-search {
+  flex: 1 1 280px;
+}
+
+.student-account-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 16px;
+}
+
+.student-account-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+}
+
+.student-account-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.student-account-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  text-align: left;
+}
+
+.student-account-avatar {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--soft);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.student-account-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.student-account-person strong,
+.student-account-person small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-account-person small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.student-account-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.student-account-meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-account-meta b {
+  display: block;
+  color: var(--ink);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.student-account-progress > div:first-child {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.student-account-progress > div:first-child span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--g);
+}
+
+.student-account-count {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.student-account-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--soft);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.student-account-counts b {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.student-account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 560px) {
+  .student-account-grid {
+    grid-template-columns: 1fr;
+  }
+  .student-account-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 560px) {
   .mandatory-admin-grid {
     grid-template-columns: 1fr;
@@ -5444,4 +5786,342 @@ small,
 }
 .memo-preview-modal .memo-preview {
   margin: 14px 0 18px;
+}
+
+/* Shared board rhythm: every portal now uses the same card spacing and feel. */
+.mandatory-admin-stats,
+.admin-activity-stats,
+.reg-stats {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.mandatory-admin-stat,
+.admin-activity-stat,
+.reg-stat {
+  display: flex;
+  flex-direction: column;
+  min-height: 86px;
+  padding: 14px 16px;
+  border-radius: 16px;
+}
+
+.mandatory-admin-stat b,
+.admin-activity-stat b,
+.reg-stat b {
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.mandatory-admin-stat span,
+.admin-activity-stat span,
+.reg-stat span {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.admin-activity-stat.verified b,
+.attendance-stat.verified b {
+  color: #177b4b;
+}
+
+.mandatory-admin-toolbar,
+.reg-toolbar {
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.reg-filters .reg-filter {
+  font-size: 12px;
+}
+
+.mandatory-admin-grid,
+.admin-activity-grid,
+.stu-record-grid,
+.student-account-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+}
+
+.admin-mandatory-card,
+.admin-activity-card,
+.stu-record-card,
+.student-account-card,
+.reg-group {
+  min-width: 0;
+  border-radius: 18px;
+}
+
+.admin-mandatory-card,
+.admin-activity-card,
+.stu-record-card,
+.student-account-card {
+  min-width: 0;
+  overflow: hidden;
+  transition: box-shadow 0.18s ease;
+}
+
+.admin-mandatory-card:hover,
+.admin-activity-card:hover,
+.stu-record-card:hover,
+.student-account-card:hover {
+  transform: none;
+  box-shadow: 0 8px 20px var(--glow);
+}
+
+.admin-mandatory-cover,
+.admin-activity-cover,
+.stu-record-cover {
+  height: 132px;
+}
+
+.admin-mandatory-cover-hint,
+.admin-activity-cover-hint,
+.stu-record-cover-hint {
+  right: 10px;
+  bottom: 10px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.admin-mandatory-body,
+.admin-activity-body,
+.stu-record-body {
+  gap: 10px;
+  padding: 16px;
+}
+
+.admin-mandatory-body h3,
+.admin-activity-body h3,
+.stu-record-body h3,
+.reg-group-title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.admin-mandatory-body > *,
+.admin-activity-body > *,
+.stu-record-body > *,
+.student-account-card > * {
+  min-width: 0;
+}
+
+.admin-mandatory-head,
+.admin-activity-head,
+.stu-record-head,
+.student-account-top {
+  flex-wrap: wrap;
+}
+
+.admin-activity-meta,
+.stu-record-meta,
+.student-account-meta {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.admin-activity-meta span,
+.stu-record-meta span,
+.student-account-meta span {
+  white-space: normal;
+}
+
+.student-account-person {
+  flex: 1 1 200px;
+}
+
+.admin-mandatory-progress,
+.admin-activity-progress,
+.stu-record-progress > div:first-child,
+.student-account-progress > div:first-child,
+.reg-progress,
+.attendance-hours-bar {
+  height: 7px;
+}
+
+.admin-mandatory-actions,
+.admin-activity-actions,
+.stu-record-actions,
+.student-account-actions {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.reg-card .reg-avatar,
+.student-account-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.attendance-card {
+  grid-template-columns:
+    minmax(180px, 1.4fr)
+    minmax(140px, 1fr)
+    minmax(100px, 0.7fr)
+    minmax(140px, auto);
+}
+
+.attendance-card > * {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .attendance-card {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .attendance-card {
+    grid-template-columns: 1fr;
+  }
+  .attendance-review,
+  .attendance-review .reg-actions {
+    justify-content: flex-start;
+    justify-items: start;
+  }
+}
+
+@media (max-width: 560px) {
+  .mandatory-admin-grid,
+  .admin-activity-grid,
+  .stu-record-grid,
+  .student-account-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Keep zero-value bars readable. An empty bar still needs a visible track. */
+.admin-mandatory-progress,
+.admin-activity-progress,
+.stu-record-progress > div:first-child,
+.student-account-progress > div:first-child,
+.reg-progress,
+.attendance-hours-bar {
+  min-height: 9px;
+  margin: 6px 0 4px;
+  background: rgba(181, 18, 43, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(181, 18, 43, 0.26);
+}
+
+.admin-mandatory-count,
+.admin-activity-count,
+.stu-record-count,
+.student-account-count {
+  margin-top: 4px;
+}
+
+/* Student Accounts finish: profile cover and settled card sections. */
+.student-account-cover {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 96px;
+  padding: 0;
+  border: 0;
+  background-position: center;
+  background-size: cover;
+  cursor: pointer;
+}
+
+.student-account-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.45));
+}
+
+.student-account-cover-badges {
+  position: absolute;
+  z-index: 1;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.student-account-cover-hint {
+  position: absolute;
+  z-index: 1;
+  right: 10px;
+  bottom: 10px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.student-account-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px;
+}
+
+.student-account-body > * {
+  min-width: 0;
+}
+
+.student-account-top {
+  align-items: center;
+}
+
+.student-account-avatar {
+  width: 44px;
+  height: 44px;
+}
+
+.student-account-person strong {
+  overflow-wrap: anywhere;
+}
+
+/* Student Accounts progress: give the verified bar room to show. */
+.student-account-card {
+  gap: 0;
+  padding: 0;
+}
+
+.student-account-progress {
+  display: grid;
+  gap: 4px;
+}
+
+.student-account-progress > div:first-child {
+  height: 10px;
+  min-height: 10px;
+  margin: 2px 0 0;
+  border: 1px solid rgba(181, 18, 43, 0.28);
+  background: rgba(181, 18, 43, 0.16);
+}
+
+.student-account-progress > div:first-child span {
+  min-height: 100%;
+}
+
+.student-account-count {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+  margin-top: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
 }

@@ -4,6 +4,7 @@ import AdminRegistrationBoard from "../../components/admin/AdminRegistrationBoar
 import AdminMandatoryBoard from "../../components/admin/AdminMandatoryBoard.jsx";
 import AdminActivitiesBoard from "../../components/admin/AdminActivitiesBoard.jsx";
 import AdminAttendanceBoard from "../../components/admin/AdminAttendanceBoard.jsx";
+import AdminStudentAccountsBoard from "../../components/admin/AdminStudentAccountsBoard.jsx";
 import {
   CATEGORIES,
   COLLEGES,
@@ -23,7 +24,6 @@ import {
   activityStatus,
   Badge,
   accepted,
-  hoursOf,
   collegeHasActiveAdmin,
   activeAcademicYear,
   isArchivedActivity,
@@ -536,107 +536,16 @@ export function AdminPage({ d, start }) {
           title="Student accounts"
           sub={`Manage student accounts assigned to ${me.college}. Deactivation suspends access; deleting an account also removes its enrollment records.`}
         >
-          <div className="tw">
-            <table>
-              <thead>
-                <tr>
-                  <th>STUDENT</th>
-                  <th>ID NUMBER</th>
-                  <th>COLLEGE</th>
-                  <th>ACTIVITIES</th>
-                  <th>HOURS</th>
-                  <th>ACCOUNT ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {collegeStudents.map((u) => (
-                  <tr key={u.id}>
-                    <td>
-                      <button
-                        type="button"
-                        className="person-cell student-detail-link"
-                        title="View student details"
-                        onClick={() =>
-                          setSelectedStudent({ student: u, enrollment: null })
-                        }
-                      >
-                        {u.avatarData && (
-                          <img src={u.avatarData} alt="" />
-                        )}
-                        <div>
-                          <strong>{displayName(u)}</strong>
-                          <small>{u.email}</small>
-                        </div>
-                      </button>
-                    </td>
-                    <td>{u.idno}</td>
-                    <td>{u.college}</td>
-                    <td>
-                      {
-                        enr.filter(
-                          (e) => e.userId === u.id && e.status === "Accepted",
-                        ).length
-                      }
-                    </td>
-                    <td>
-                      <b>{hoursOf(enr, u.id)}</b>
-                    </td>
-                    <td>
-                      {u.status === "Active" ? (
-                        studentDeactivationChoice === u.id ? (
-                          <>
-                            <button
-                              type="button"
-                              className="tb"
-                              onClick={() => toggleStudent(u.id)}
-                            >
-                              Confirm deactivate
-                            </button>
-                            <button
-                              type="button"
-                              className="tb bad"
-                              onClick={() => deleteStudent(u.id)}
-                            >
-                              Delete instead
-                            </button>
-                            <button
-                              type="button"
-                              className="tb"
-                              onClick={() => setStudentDeactivationChoice(null)}
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            type="button"
-                            className="tb"
-                            onClick={() => setStudentDeactivationChoice(u.id)}
-                          >
-                            Deactivate
-                          </button>
-                        )
-                      ) : (
-                        <button
-                          type="button"
-                          className="tb"
-                          onClick={() => toggleStudent(u.id)}
-                        >
-                          Activate
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {collegeStudents.length === 0 && (
-                  <Empty
-                    cols={6}
-                    text="No student accounts are assigned to your college."
-                  />
-                )}
-              </tbody>
-            </table>
-          </div>
+          <AdminStudentAccountsBoard
+            students={collegeStudents}
+            enrollments={enr}
+            choice={studentDeactivationChoice}
+            onChoose={setStudentDeactivationChoice}
+            onToggle={toggleStudent}
+            onDelete={deleteStudent}
+            onCancelChoice={() => setStudentDeactivationChoice(null)}
+            onSelectStudent={setSelectedStudent}
+          />
         </Panel>
       )}
       {page === "My Activities" && (

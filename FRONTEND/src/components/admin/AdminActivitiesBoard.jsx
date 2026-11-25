@@ -52,20 +52,20 @@ export default function AdminActivitiesBoard({
     <>
       <div className="admin-activity-stats">
         <div className="admin-activity-stat">
-          <span>Activities</span>
           <b>{rows.length}</b>
+          <span>Activities</span>
         </div>
         <div className="admin-activity-stat accepted">
-          <span>Accepted</span>
           <b>{rows.reduce((sum, row) => sum + row.acceptedCount, 0)}</b>
+          <span>Accepted</span>
         </div>
         <div className="admin-activity-stat verified">
-          <span>Verified</span>
           <b>{rows.reduce((sum, row) => sum + row.verified, 0)}</b>
+          <span>Verified</span>
         </div>
         <div className="admin-activity-stat">
-          <span>Mandatory</span>
           <b>{rows.filter((row) => row.activity.mandatory).length}</b>
+          <span>Mandatory</span>
         </div>
       </div>
 
