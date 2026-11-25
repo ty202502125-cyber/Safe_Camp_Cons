@@ -22,26 +22,36 @@ export default function StudentActivityCard({
   onSelect,
   onEnroll,
   onCancel,
+  hideCover = false,
 }) {
   const enrollment = mine.find((item) => item.actId === activity.id);
   const placesLeft = activity.slots - accepted(enrollments, activity);
   const registration = registrationState(activity, clockNow);
+  const badges = (
+    <>
+      <Badge s={activityStatus(activity, clockNow)} />
+      <Badge s={eventPhase(activity, clockNow)} />
+      {activity.mandatory && <Badge s="Mandatory" />}
+    </>
+  );
 
   return (
-    <article className="card acard">
-      <button
-        type="button"
-        className="aimg"
-        style={{
-          backgroundImage: `url(${activity.images?.[0] || activity.image || PHOTO[activity.category] || IMG.campus})`,
-        }}
-        onClick={() => onSelect(activity)}
-        aria-label={`View ${activity.title} details`}
-      >
-        <Badge s={activityStatus(activity, clockNow)} />
-        <Badge s={eventPhase(activity, clockNow)} />
-        {activity.mandatory && <Badge s="Mandatory" />}
-      </button>
+    <article className={`card acard ${hideCover ? "no-cover" : ""}`}>
+      {hideCover ? (
+        <div className="acard-badges">{badges}</div>
+      ) : (
+        <button
+          type="button"
+          className="aimg"
+          style={{
+            backgroundImage: `url(${activity.images?.[0] || activity.image || PHOTO[activity.category] || IMG.campus})`,
+          }}
+          onClick={() => onSelect(activity)}
+          aria-label={`View ${activity.title} details`}
+        >
+          {badges}
+        </button>
+      )}
       <div className="abody">
         <span className="eb">{activity.category}</span>
         <h3>

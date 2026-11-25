@@ -6836,3 +6836,322 @@ small,
     max-height: 220px;
   }
 }
+
+/* Student Portal cleanup: a unique green rhythm across the main pages. */
+.stu {
+  --stu: #177b4b;
+  --stu-soft: rgba(23, 123, 75, 0.1);
+  --stu-glow: rgba(23, 123, 75, 0.18);
+}
+
+.stu .panel {
+  min-width: 0;
+  border-radius: 18px;
+}
+
+.stu .panel > .ph h2 {
+  font-size: 19px;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.stu .panel > .ph p {
+  max-width: 58ch;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.stu-dash-welcome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--stu);
+  border-radius: 18px;
+  background: var(--soft);
+}
+
+.stu-dash-welcome > div {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.stu-dash-welcome .eyebrow {
+  color: var(--stu);
+}
+
+.stu-dash-welcome h2 {
+  margin: 6px 0 4px;
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.stu-dash-welcome p {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.stu-dash-welcome .btn {
+  flex-shrink: 0;
+}
+
+.stu .stats {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.stu .stat {
+  display: flex;
+  flex-direction: column;
+  min-height: 86px;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.stu .stat .st span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.stu .stat .sv {
+  margin: 8px 0 2px;
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.stu .stat .sd {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.stu .sh {
+  margin-top: 20px;
+}
+
+.stu .featured-heading {
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.stu .acts {
+  gap: 16px;
+}
+
+.stu .acard {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  transition: box-shadow 0.18s ease;
+}
+
+.stu .acard:hover {
+  box-shadow: 0 8px 20px var(--stu-glow);
+}
+
+.stu .acard .abody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px;
+}
+
+.stu .acard .abody h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.stu .acard .abody p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.stu .acard .abody > * {
+  min-width: 0;
+}
+
+.stu .acard.no-cover .acard-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 14px 16px 0;
+}
+
+.stu .mandatory-grid {
+  gap: 16px;
+}
+
+.stu .mandatory-card {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 18px;
+}
+
+.stu .mandatory-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.stu .mandatory-body > * {
+  min-width: 0;
+}
+
+.stu .mandatory-body h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.stu .mandatory-meta span {
+  white-space: normal;
+}
+
+.stu .mandatory-actions {
+  margin-top: auto;
+}
+
+.stu .stu-record-card {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 18px;
+}
+
+.stu .stu-record-card > * {
+  min-width: 0;
+}
+
+.stu .stu-record-progress > div:first-child span {
+  background: linear-gradient(135deg, #2f9e62, var(--stu));
+}
+
+.stu .stu-record-count b {
+  color: var(--stu);
+}
+
+.stu .reg-stat.hours b,
+.stu .reg-stat.verified b {
+  color: var(--stu);
+}
+
+/* Student My Profile: familiar sections with a student-green accent. */
+.student-profile .pcard {
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--stu);
+}
+
+.student-profile .pname {
+  gap: 10px;
+}
+
+.student-profile .pname h2 {
+  overflow-wrap: anywhere;
+}
+
+.student-profile .pname .bd {
+  flex-shrink: 0;
+}
+
+.student-profile .pinfo {
+  gap: 9px;
+}
+
+.student-profile .pinfo > span {
+  border-radius: 10px;
+  background: var(--stu-soft);
+}
+
+.student-profile .pcard + .two.eq > .panel {
+  min-width: 0;
+  border-radius: 18px;
+  box-shadow: 0 8px 20px var(--stu-glow);
+}
+
+.student-profile .pcard + .two.eq > .panel > .ph {
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.student-profile .pcard + .two.eq > .panel > .ph h2 {
+  font-size: 19px;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.student-profile .pcard + .two.eq > .panel > .ph p {
+  max-width: 58ch;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.student-profile .profile-details {
+  margin-top: 0;
+}
+
+.student-profile .profile-details > div {
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--stu-soft);
+}
+
+.student-profile .profile-details dt {
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.student-profile .profile-details dd {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.student-profile .form {
+  margin-top: 0;
+}
+
+.student-profile .form label {
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.student-profile .form .btn {
+  margin-top: 4px;
+  align-self: flex-start;
+}
+
+@media (max-width: 560px) {
+  .stu-dash-welcome {
+    padding: 16px;
+  }
+  .stu .acts,
+  .stu .mandatory-grid {
+    grid-template-columns: 1fr;
+  }
+}

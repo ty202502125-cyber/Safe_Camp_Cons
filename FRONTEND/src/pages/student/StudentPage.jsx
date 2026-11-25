@@ -558,7 +558,11 @@ export function StudentPage({ d, start }) {
             )}
           </Panel>
         )}
-        {page === "My Profile" && <Profile d={d} />}
+        {page === "My Profile" && (
+          <div className="student-profile">
+            <Profile d={d} />
+          </div>
+        )}
         {selectedActivity && (
           <ActivityDetails
             activity={selectedActivity}
