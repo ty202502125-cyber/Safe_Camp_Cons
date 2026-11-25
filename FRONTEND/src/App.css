@@ -6125,3 +6125,94 @@ small,
   background: none;
   box-shadow: none;
 }
+
+/* Admin Users My Profile cleanup: calmer sections without moving pictures. */
+.admin-profile .pcard {
+  border: 1px solid var(--line);
+}
+
+.admin-profile .pname {
+  gap: 10px;
+}
+
+.admin-profile .pname h2 {
+  overflow-wrap: anywhere;
+}
+
+.admin-profile .pname .bd {
+  flex-shrink: 0;
+}
+
+.admin-profile .pinfo {
+  gap: 9px;
+}
+
+.admin-profile .pinfo > span {
+  border-radius: 10px;
+  background: var(--soft);
+}
+
+.admin-profile .pcard + .two.eq > .panel {
+  min-width: 0;
+  border-radius: 18px;
+  box-shadow: 0 8px 20px var(--glow);
+}
+
+.admin-profile .pcard + .two.eq > .panel > .ph {
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.admin-profile .pcard + .two.eq > .panel > .ph h2 {
+  font-size: 19px;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.admin-profile .pcard + .two.eq > .panel > .ph p {
+  max-width: 58ch;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.admin-profile .pcard + .two.eq > .panel .profile-details {
+  margin-top: 0;
+}
+
+.admin-profile .pcard + .two.eq > .panel .profile-details > div {
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--soft);
+}
+
+.admin-profile .pcard + .two.eq > .panel .profile-details dt {
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-profile .pcard + .two.eq > .panel .profile-details dd {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-profile .pcard + .two.eq > .panel .form {
+  margin-top: 0;
+}
+
+.admin-profile .pcard + .two.eq > .panel .form label {
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-profile .pcard + .two.eq > .panel .form .btn {
+  margin-top: 4px;
+  align-self: flex-start;
+}

@@ -902,7 +902,11 @@ export function AdminPage({ d, start }) {
           />
         </Panel>
       )}
-      {page === "My Profile" && <Profile d={d} />}
+      {page === "My Profile" && (
+        <div className="admin-profile">
+          <Profile d={d} />
+        </div>
+      )}
       {selectedActivity && (
         <ActivityDetails
           activity={selectedActivity}
