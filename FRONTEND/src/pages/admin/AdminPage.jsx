@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import AdminHomePage from "./HomePage.jsx";
+import AdminRegistrationBoard from "../../components/admin/AdminRegistrationBoard.jsx";
+import AdminMandatoryBoard from "../../components/admin/AdminMandatoryBoard.jsx";
 import {
   CATEGORIES,
   COLLEGES,
@@ -389,6 +391,50 @@ export function AdminPage({ d, start }) {
     setActs(acts.map((x) => (x.id === a.id ? { ...x, status } : x)));
     flash(`Activity marked ${status.toLowerCase()}.`);
   };
+
+  function editActivity(a) {
+    setForm({
+      title: a.title,
+      desc: a.desc,
+      category: a.category,
+      date: a.date,
+      time: a.time,
+      endTime: a.endTime || "",
+      location: a.location,
+      hours: a.hours,
+      slots: a.slots,
+      colleges: a.colleges?.length
+        ? a.colleges.filter((college) => collegeOptions.includes(college))
+        : [...collegeOptions],
+      images: Array.isArray(a.images)
+        ? a.images
+        : a.image
+          ? [a.image]
+          : [],
+      mandatory: Boolean(a.mandatory),
+      registrationStart: a.registrationStart || dateKey(),
+      registrationEnd: a.registrationEnd || addDays(a.date, -1),
+      memo: a.memo || null,
+    });
+    setEditId(a.id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function toggleMandatoryForAdmin(a) {
+    if (isLocked(a))
+      return flash("Archived academic years are read-only.", true);
+    setActs(
+      acts.map((x) =>
+        x.id === a.id ? { ...x, mandatory: !x.mandatory } : x,
+      ),
+    );
+    flash(
+      a.mandatory
+        ? `${a.title} is no longer mandatory.`
+        : `${a.title} is now mandatory.`,
+    );
+  }
+
   function respond(e, status) {
     const a = act(e.actId);
     if (isLocked(a))
@@ -451,7 +497,7 @@ export function AdminPage({ d, start }) {
         ["Dashboard"],
         ["My Activities"],
         ["Mandatory", mandatoryMine.length],
-        ["Requests", reqs.length],
+        ["Registrations", reqs.length],
         ["Attendance & Hours"],
         ["Student Accounts"],
         ["My Profile"],
@@ -947,37 +993,7 @@ export function AdminPage({ d, start }) {
                           type="button"
                           className="tb"
                           disabled={locked}
-                          onClick={() => {
-                            setForm({
-                              title: a.title,
-                              desc: a.desc,
-                              category: a.category,
-                              date: a.date,
-                              time: a.time,
-                              endTime: a.endTime || "",
-                              location: a.location,
-                              hours: a.hours,
-                              slots: a.slots,
-                              colleges: a.colleges?.length
-                                ? a.colleges.filter((college) =>
-                                    collegeOptions.includes(college),
-                                  )
-                                : [...collegeOptions],
-                              images: Array.isArray(a.images)
-                                ? a.images
-                                : a.image
-                                  ? [a.image]
-                                  : [],
-                              mandatory: Boolean(a.mandatory),
-                              registrationStart:
-                                a.registrationStart || dateKey(),
-                              registrationEnd:
-                                a.registrationEnd || addDays(a.date, -1),
-                              memo: a.memo || null,
-                            });
-                            setEditId(a.id);
-                            window.scrollTo({ top: 0, behavior: "smooth" });
-                          }}
+                          onClick={() => editActivity(a)}
                         >
                           Edit
                         </button>
@@ -1005,161 +1021,36 @@ export function AdminPage({ d, start }) {
         <Panel
           eyebrow="REQUIRED PARTICIPATION"
           title="Mandatory activities"
-          sub="Students in the participating colleges are expected to enroll and attend these activities. Completion is counted when attendance is verified."
+          sub="Track who has completed each required activity. You can edit an activity or make it optional from here."
         >
-          <div className="tw admin-work-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>ACTIVITY</th>
-                  <th>PERIOD</th>
-                  <th>DATE</th>
-                  <th>COMPLETED</th>
-                  <th>NOT YET COMPLETED</th>
-                  <th>STATUS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mandatoryMine.map((a) => {
-                  const eligible = eligibleStudents(a);
-                  const notDone = eligible.filter((student) => {
-                    const enrollment = enr.find(
-                      (e) =>
-                        e.actId === a.id &&
-                        e.userId === student.id &&
-                        e.attended &&
-                        e.verified,
-                    );
-                    return !enrollment;
-                  });
-                  return (
-                    <tr key={a.id}>
-                      <td>
-                        <button
-                          type="button"
-                          className="activity-link"
-                          onClick={() => setSelectedActivity(a)}
-                        >
-                          <strong>{a.title}</strong>
-                        </button>
-                        <small>{a.category}</small>
-                      </td>
-                      <td>{periodLabel(a)}</td>
-                      <td>{fmtDate(a.date)}</td>
-                      <td>
-                        {completedCount(a)} / {eligible.length}
-                      </td>
-                      <td>
-                        {notDone.length ? (
-                          notDone.map((student) => (
-                            <small key={student.id}>
-                              {displayName(student)} · {student.college}
-                            </small>
-                          ))
-                        ) : (
-                          <small>All students completed</small>
-                        )}
-                      </td>
-                      <td>
-                        <Badge s={statusOf(a)} />
-                      </td>
-                    </tr>
-                  );
-                })}
-                {mandatoryMine.length === 0 && (
-                  <Empty
-                    cols={6}
-                    text="No mandatory activities yet. Tick 'Mandatory' when creating or editing an activity."
-                  />
-                )}
-              </tbody>
-            </table>
-          </div>
+          <AdminMandatoryBoard
+            activities={mandatoryMine}
+            students={collegeStudents}
+            enrollments={enr}
+            clockNow={clockNow}
+            onSelectActivity={setSelectedActivity}
+            onSelectStudent={setSelectedStudent}
+            onEditActivity={editActivity}
+            onToggleMandatory={toggleMandatoryForAdmin}
+            locked={isLocked}
+          />
         </Panel>
       )}
-      {page === "Requests" && (
+      {page === "Registrations" && (
         <Panel
-          eyebrow="ENROLLMENT REQUESTS"
-          title="Student requests"
-          sub="Accept or decline students who want to join your activities."
+          eyebrow="REGISTRATION DESK"
+          title="Registrations"
+          sub="See who registered for each activity, their current status, and their attendance progress."
         >
-          <div className="tw admin-work-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>STUDENT</th>
-                  <th>COLLEGE</th>
-                  <th>ACTIVITY</th>
-                  <th>STATUS</th>
-                  <th>DECISION</th>
-                </tr>
-              </thead>
-              <tbody>
-                {myEnr.map((e) => (
-                  <tr key={e.id}>
-                    <td>
-                      <button
-                        type="button"
-                        className="activity-link student-request-link"
-                        title="View student details"
-                        onClick={() =>
-                          setSelectedStudent({
-                            student: stu(e.userId),
-                            enrollment: e,
-                          })
-                        }
-                      >
-                        {stu(e.userId).avatarData ? (
-                          <img
-                            src={stu(e.userId).avatarData}
-                            alt=""
-                            className="av-photo"
-                          />
-                        ) : null}
-                        <span>
-                          <strong>{displayName(stu(e.userId))}</strong>
-                          <small>{stu(e.userId).idno}</small>
-                        </span>
-                      </button>
-                    </td>
-                    <td>{stu(e.userId).college}</td>
-                    <td>
-                      {act(e.actId).title}
-                      <small>{fmtDate(act(e.actId).date)}</small>
-                    </td>
-                    <td>
-                      <Badge s={e.status} />
-                    </td>
-                    <td>
-                      {e.status === "Pending" ? (
-                        <>
-                          <button
-                            type="button"
-                            className="tb"
-                            onClick={() => respond(e, "Accepted")}
-                          >
-                            Accept
-                          </button>
-                          <button
-                            type="button"
-                            className="tb bad"
-                            onClick={() => respond(e, "Declined")}
-                          >
-                            Decline
-                          </button>
-                        </>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {myEnr.length === 0 && (
-                  <Empty cols={5} text="No student requests yet." />
-                )}
-              </tbody>
-            </table>
-          </div>
+          <AdminRegistrationBoard
+            activities={mine}
+            registrations={myEnr}
+            users={users}
+            clockNow={clockNow}
+            onRespond={respond}
+            onSelectStudent={setSelectedStudent}
+            onSelectActivity={setSelectedActivity}
+          />
         </Panel>
       )}
       {page === "Attendance & Hours" && (

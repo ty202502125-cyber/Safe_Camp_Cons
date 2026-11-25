@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import StudentHomePage from "./HomePage.jsx";
 import StudentActivityCard from "../../components/student/StudentActivityCard.jsx";
+import MandatoryActivityCard from "../../components/student/MandatoryActivityCard.jsx";
 import {
   CATEGORIES,
   nid,
@@ -367,50 +368,32 @@ export function StudentPage({ d, start }) {
             title="Mandatory activities"
             sub="These activities are required for students in your college. Enroll, attend, and log your hours to complete them."
           >
-            <div className="tw">
-              <table>
-                <thead>
-                  <tr>
-                    <th>ACTIVITY</th>
-                    <th>SCHEDULE</th>
-                    <th>REQUIREMENT</th>
-                    <th>ACTION</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mandatoryVisible.map((a) => (
-                    <tr key={a.id}>
-                      <td>
-                        <strong>{a.title}</strong>
-                        <small>{a.category}</small>
-                      </td>
-                      <td>
-                        {fmtDate(a.date)} · {timeRange(a)}
-                        <small>{a.location}</small>
-                      </td>
-                      <td>
-                        <Badge s={requirementStatus(a)} />
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="tb"
-                          onClick={() => setSelectedActivity(a)}
-                        >
-                          View details
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {mandatoryVisible.length === 0 && (
-                    <Empty
-                      cols={4}
-                      text="No mandatory activities are open to you right now."
-                    />
-                  )}
-                </tbody>
-              </table>
-            </div>
+            {mandatoryVisible.length ? (
+              <div className="mandatory-grid">
+                {mandatoryVisible.map((a) => (
+                  <MandatoryActivityCard
+                    key={a.id}
+                    activity={a}
+                    mine={mine}
+                    enrollments={enr}
+                    clockNow={clockNow}
+                    status={requirementStatus(a)}
+                    onSelect={setSelectedActivity}
+                    onEnroll={enroll}
+                    onCancel={cancel}
+                    onLog={(e) => {
+                      setPage("My Enrollments");
+                      openLog(e);
+                    }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Empty
+                cols={4}
+                text="No mandatory activities are open to you right now."
+              />
+            )}
           </Panel>
         )}
         {page === "My Enrollments" && (
