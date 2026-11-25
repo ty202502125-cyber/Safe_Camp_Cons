@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Panel } from "../../components/common/SharedUi.jsx";
-import { IMG } from "../../data/appData.js";
 import {
   compressActivityImage,
   displayName,
@@ -69,9 +68,7 @@ export function Profile({ d }) {
 
   const coverStyle = form.coverData
     ? { backgroundImage: `url(${form.coverData})` }
-    : {
-        backgroundImage: `linear-gradient(120deg,rgba(77,6,18,.85),rgba(181,18,43,.45)),url(${IMG.campus})`,
-      };
+    : { backgroundColor: "#ffffff", backgroundImage: "none" };
 
   return (
     <>
