@@ -16,6 +16,7 @@ import {
   Empty,
   Shell,
   Profile,
+  ActivityDetails,
 } from "../../shared/appCommon.jsx";
 import api from "../../services/api.js";
 
@@ -55,6 +56,7 @@ export function SuperAdminPage({ d, start }) {
   const [createdAdmin, setCreatedAdmin] = useState(null);
   const [resendingEmail, setResendingEmail] = useState(false);
   const [previewAdmin, setPreviewAdmin] = useState(null);
+  const [previewActivity, setPreviewActivity] = useState(null);
   const [zoomedPhoto, setZoomedPhoto] = useState(null);
   const admins = users.filter((u) => u.role === "Admin"),
     students = users.filter((u) => u.role === "User");
@@ -1087,6 +1089,14 @@ export function SuperAdminPage({ d, start }) {
                         <button
                           type="button"
                           className="tb"
+                          title="Preview photos and memo"
+                          onClick={() => setPreviewActivity(a)}
+                        >
+                          Preview
+                        </button>{" "}
+                        <button
+                          type="button"
+                          className="tb"
                           disabled={locked}
                           title={
                             locked ? "Archived academic years are read-only" : ""
@@ -1287,6 +1297,17 @@ export function SuperAdminPage({ d, start }) {
             </div>
           </section>
         </div>
+      )}
+      {previewActivity && (
+        <ActivityDetails
+          activity={previewActivity}
+          status={previewActivity.status}
+          clockNow={clockNow}
+          users={users}
+          enrollments={enr}
+          organizations={organizations}
+          close={() => setPreviewActivity(null)}
+        />
       )}
       {zoomedPhoto && (
         <div
