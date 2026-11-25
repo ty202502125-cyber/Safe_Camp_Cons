@@ -462,6 +462,7 @@ export function AdminPage({ d, start }) {
           me={me}
           activities={mine}
           enrollments={enr}
+          students={collegeStudents}
           requests={reqs}
           loggedHours={myEnr
             .filter((enrollment) => enrollment.attended)
