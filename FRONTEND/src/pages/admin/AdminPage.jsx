@@ -506,29 +506,31 @@ export function AdminPage({ d, start }) {
       ]}
     >
       {page === "Dashboard" && (
-        <AdminHomePage
-          me={me}
-          activities={mine}
-          enrollments={enr}
-          students={collegeStudents}
-          requests={reqs}
-          loggedHours={myEnr
-            .filter((enrollment) => enrollment.attended)
-            .reduce(
-              (sum, enrollment) => sum + Number(enrollment.hours || 0),
-              0,
-            )}
-          onCreateActivity={() => {
-            setForm({
-              ...blank,
-              colleges: assignedCollege ? [assignedCollege] : [],
-            });
-            setEditId(null);
-            setPage("My Activities");
-          }}
-          onSelectActivity={setSelectedActivity}
-          getStatus={statusOf}
-        />
+        <div className="admin-dashboard">
+          <AdminHomePage
+            me={me}
+            activities={mine}
+            enrollments={enr}
+            students={collegeStudents}
+            requests={reqs}
+            loggedHours={myEnr
+              .filter((enrollment) => enrollment.attended)
+              .reduce(
+                (sum, enrollment) => sum + Number(enrollment.hours || 0),
+                0,
+              )}
+            onCreateActivity={() => {
+              setForm({
+                ...blank,
+                colleges: assignedCollege ? [assignedCollege] : [],
+              });
+              setEditId(null);
+              setPage("My Activities");
+            }}
+            onSelectActivity={setSelectedActivity}
+            getStatus={statusOf}
+          />
+        </div>
       )}
       {page === "Student Accounts" && (
         <Panel

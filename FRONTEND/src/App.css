@@ -6216,3 +6216,396 @@ small,
   margin-top: 4px;
   align-self: flex-start;
 }
+
+/* Admin Users dashboard: one calm rhythm for stats, charts and shortcuts. */
+.admin-dashboard {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-dashboard .admin-dash-welcome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--soft);
+}
+
+.admin-dashboard .admin-dash-welcome h2 {
+  margin: 4px 0 6px;
+  font-size: clamp(22px, 3vw, 30px);
+}
+
+.admin-dashboard .admin-dash-welcome p {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.admin-dashboard .admin-dash-welcome .btn {
+  flex-shrink: 0;
+}
+
+.admin-dashboard .admin-dash-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.admin-dashboard .admin-dash-stat {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 92px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--soft);
+}
+
+.admin-dashboard .admin-dash-stat b {
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.admin-dashboard .admin-dash-stat span {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.admin-dashboard .admin-dash-stat small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.admin-dashboard .admin-dash-stat.pending-activities b {
+  color: #d97706;
+}
+
+.admin-dashboard .admin-dash-stat.requests b,
+.admin-dashboard .admin-dash-stat.verified b {
+  color: #177b4b;
+}
+
+.admin-dashboard .admin-dash-analytics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-dashboard .admin-dash-chart-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+}
+
+.admin-dashboard .admin-dash-chart-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.admin-dashboard .admin-dash-chart-head h3 {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.admin-dashboard .admin-dash-chart-head span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.admin-dashboard .admin-dash-chart {
+  width: 100%;
+  height: 190px;
+  min-width: 0;
+}
+
+.admin-dashboard .admin-dash-empty {
+  margin: 0;
+  padding: 18px 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.admin-dashboard .admin-dash-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 14px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.admin-dashboard .admin-dash-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.admin-dashboard .admin-dash-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.admin-dashboard .admin-dash-legend b {
+  color: var(--ink);
+}
+
+.admin-dashboard .admin-dash-top {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.admin-dashboard .admin-dash-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.admin-dashboard .admin-dash-section-head h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.admin-dashboard .admin-dash-section-head span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.admin-dashboard .admin-dash-student-list {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-dashboard .admin-dash-student-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--soft);
+}
+
+.admin-dashboard .admin-dash-avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.admin-dashboard .admin-dash-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-dashboard .admin-dash-student-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-dashboard .admin-dash-student-name b {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.admin-dashboard .admin-dash-student-name small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.admin-dashboard .admin-dash-student-number {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 58px;
+  text-align: right;
+}
+
+.admin-dashboard .admin-dash-student-number b {
+  font-size: 14px;
+}
+
+.admin-dashboard .admin-dash-student-number small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.admin-dashboard .admin-dash-activity-list {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-dashboard .admin-dash-activity {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+  color: var(--ink);
+  text-align: left;
+  transition: box-shadow 0.18s ease;
+}
+
+.admin-dashboard .admin-dash-activity:hover {
+  box-shadow: 0 8px 20px var(--glow);
+}
+
+.admin-dashboard .admin-dash-activity-cover {
+  width: 72px;
+  height: 60px;
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+}
+
+.admin-dashboard .admin-dash-activity-main {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-dashboard .admin-dash-activity-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-dashboard .admin-dash-activity-head b {
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.admin-dashboard .admin-dash-activity-main > small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.admin-dashboard .admin-dash-activity-bar {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(181, 18, 43, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(181, 18, 43, 0.26);
+}
+
+.admin-dashboard .admin-dash-activity-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--g);
+}
+
+.admin-dashboard .admin-dash-activity-metrics {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.admin-dashboard .admin-dash-activity-metrics > span {
+  display: grid;
+  gap: 2px;
+  text-align: center;
+}
+
+.admin-dashboard .admin-dash-activity-metrics strong {
+  font-size: 15px;
+}
+
+.admin-dashboard .admin-dash-activity-metrics small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.admin-dashboard .admin-dash-activity-link {
+  color: var(--c) !important;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .admin-dashboard .admin-dash-analytics {
+    grid-template-columns: 1fr;
+  }
+  .admin-dashboard .admin-dash-activity {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+  .admin-dashboard .admin-dash-activity-metrics {
+    grid-column: 1 / -1;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 560px) {
+  .admin-dashboard .admin-dash-stats {
+    grid-template-columns: 1fr;
+  }
+  .admin-dashboard .admin-dash-student-row {
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+  }
+  .admin-dashboard .admin-dash-student-number:last-child {
+    display: none;
+  }
+  .admin-dashboard .admin-dash-activity {
+    grid-template-columns: 1fr;
+  }
+  .admin-dashboard .admin-dash-activity-cover {
+    width: 100%;
+    height: 96px;
+  }
+  .admin-dashboard .admin-dash-activity-metrics {
+    grid-column: auto;
+    flex-wrap: wrap;
+  }
+}
