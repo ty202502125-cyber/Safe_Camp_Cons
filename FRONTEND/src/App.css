@@ -1809,13 +1809,26 @@ td select {
 }
 
 .nickname-button {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
   margin-left: 0;
-  padding: 6px 11px;
+  padding: 0;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: 50%;
   background: var(--card);
   color: var(--c);
-  font-size: 11px;
+}
+
+.nickname-button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.nickname-button:hover {
+  border-color: var(--cb);
+  background: var(--soft);
 }
 
 .nickname-editor {
@@ -2322,6 +2335,82 @@ td select {
 
 .profile-photo-view .tb.bad {
   color: #ffb3bd;
+}
+
+.profile-nickname-view {
+  display: grid;
+  gap: 16px;
+  width: min(420px, calc(100vw - 32px));
+  color: #fff;
+}
+
+.profile-nickname-view .ph {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.profile-nickname-view .ph h2 {
+  color: #fff;
+  font-size: 20px;
+}
+
+.profile-nickname-view .ph .eb {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.profile-nickname-view .ph .tb,
+.profile-nickname-view .tb {
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.profile-nickname-view .tb.primary {
+  background: #fff;
+  color: var(--ink);
+  border-color: #fff;
+}
+
+.profile-nickname-view .tb.bad {
+  color: #ffb3bd;
+}
+
+.profile-nickname-current {
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.profile-nickname-current p {
+  margin: 0;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.profile-nickname-view .nickname-editor {
+  justify-content: center;
+}
+
+.profile-nickname-view .nickname-editor input {
+  background: #fff;
+  color: var(--ink);
+  border: 0;
+  text-align: center;
+}
+
+.profile-nickname-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
 }
 
 .activity-shortcuts {

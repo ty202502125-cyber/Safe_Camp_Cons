@@ -13,7 +13,8 @@ export function Profile({ d }) {
   const [avatarEditing, setAvatarEditing] = useState(false);
   const [coverEditing, setCoverEditing] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [nicknameOpen, setNicknameOpen] = useState(false);
+  const [nicknameMenu, setNicknameMenu] = useState(false);
+  const [nicknameChanging, setNicknameChanging] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState(me?.nickname || "");
 
   useEffect(() => {
@@ -67,7 +68,18 @@ export function Profile({ d }) {
   async function saveNickname() {
     const value = nicknameDraft.trim();
     const saved = await saveField("nickname", value, "Nickname saved.");
-    if (saved) setNicknameOpen(false);
+    if (saved) {
+      setNicknameChanging(false);
+      setNicknameMenu(false);
+    }
+  }
+
+  async function deleteNickname() {
+    const saved = await saveField("nickname", "", "Nickname removed.");
+    if (saved) {
+      setNicknameChanging(false);
+      setNicknameMenu(false);
+    }
   }
 
   async function changePw(e) {
@@ -125,51 +137,32 @@ export function Profile({ d }) {
             )}
           </button>
           <div className="pname">
-            {nicknameOpen ? (
-              <div className="nickname-editor">
-                <input
-                  value={nicknameDraft}
-                  maxLength={30}
-                  placeholder="Nickname"
-                  autoFocus
-                  onChange={(event) => setNicknameDraft(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") saveNickname();
-                    if (event.key === "Escape") setNicknameOpen(false);
-                  }}
-                />
-                <button
-                  className="tb"
-                  type="button"
-                  disabled={busy}
-                  onClick={saveNickname}
-                >
-                  Save
-                </button>
-                <button
-                  className="tb"
-                  type="button"
-                  onClick={() => setNicknameOpen(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <>
-                <h2>{displayName(me)}</h2>
-                <button
-                  className="tb nickname-button"
-                  type="button"
-                  title="Edit nickname"
-                  onClick={() => {
-                    setNicknameDraft(me?.nickname || "");
-                    setNicknameOpen(true);
-                  }}
-                >
-                  Edit nickname
-                </button>
-              </>
-            )}
+            <h2>{displayName(me)}</h2>
+            <button
+              className="tb nickname-button"
+              type="button"
+              title="Edit nickname"
+              aria-label="Edit nickname"
+              aria-expanded={nicknameMenu}
+              onClick={() => {
+                setNicknameDraft(me?.nickname || "");
+                setNicknameChanging(false);
+                setNicknameMenu(true);
+              }}
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+            </button>
             <span className={`bd ${me.role === "Super Admin" ? "gold" : "ok"}`}>
               {me.role}
             </span>
@@ -404,6 +397,104 @@ export function Profile({ d }) {
                     onClick={() => removeImage("coverData")}
                   >
                     Remove cover
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {nicknameMenu && (
+        <div
+          className="modal-backdrop photo-zoom-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setNicknameChanging(false);
+              setNicknameMenu(false);
+            }
+          }}
+        >
+          <div
+            className="profile-nickname-view"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="nickname-view-title"
+          >
+            <div className="ph">
+              <div>
+                <span className="eb">NICKNAME</span>
+                <h2 id="nickname-view-title">Edit nickname</h2>
+              </div>
+              <button
+                className="tb"
+                type="button"
+                onClick={() => {
+                  setNicknameChanging(false);
+                  setNicknameMenu(false);
+                }}
+              >
+                Close
+              </button>
+            </div>
+            <div className="profile-nickname-current">
+              {nicknameChanging ? (
+                <div className="nickname-editor">
+                  <input
+                    value={nicknameDraft}
+                    maxLength={30}
+                    placeholder="Nickname"
+                    autoFocus
+                    onChange={(event) => setNicknameDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") saveNickname();
+                      if (event.key === "Escape") setNicknameChanging(false);
+                    }}
+                  />
+                  <button
+                    className="tb primary"
+                    type="button"
+                    disabled={busy}
+                    onClick={saveNickname}
+                  >
+                    Save
+                  </button>
+                  <button
+                    className="tb"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setNicknameChanging(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <p>
+                  {me.nickname ? `“${me.nickname}”` : "No nickname yet."}
+                </p>
+              )}
+            </div>
+            {!nicknameChanging && (
+              <div className="profile-nickname-actions">
+                <button
+                  className="tb primary"
+                  type="button"
+                  onClick={() => {
+                    setNicknameDraft(me?.nickname || "");
+                    setNicknameChanging(true);
+                  }}
+                >
+                  {me.nickname ? "Change nickname" : "Add nickname"}
+                </button>
+                {me.nickname && (
+                  <button
+                    className="tb bad"
+                    type="button"
+                    disabled={busy}
+                    onClick={deleteNickname}
+                  >
+                    Delete nickname
                   </button>
                 )}
               </div>
