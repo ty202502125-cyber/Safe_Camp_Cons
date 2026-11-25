@@ -9,6 +9,7 @@ import {
   fmtDate,
   initials,
 } from "../../shared/appCommon.jsx";
+import BoardSelect from "../common/BoardSelect.jsx";
 
 const FILTERS = ["All", "Awaiting review", "Verified", "Not logged"];
 
@@ -40,6 +41,13 @@ export default function AdminAttendanceBoard({
     value ? fmtDate(String(value).slice(0, 10)) : "—";
 
   const acceptedRows = enrollments.filter((e) => e.status === "Accepted");
+  const activitySelectOptions = [
+    { value: "All", label: "All activities" },
+    ...activities.map((activity) => ({
+      value: activity.id,
+      label: activity.title,
+    })),
+  ];
   const count = (state) => acceptedRows.filter((e) => stateOf(e) === state).length;
   const loggedHours = acceptedRows.reduce(
     (sum, e) => sum + (e.attended ? Number(e.hours) || 0 : 0),
@@ -133,18 +141,13 @@ export default function AdminAttendanceBoard({
             </button>
           )}
         </div>
-        <select
+        <BoardSelect
+          label="Activity"
           value={activityId}
-          onChange={(event) => setActivityId(event.target.value)}
-          aria-label="Filter by activity"
-        >
-          <option value="All">All activities</option>
-          {activities.map((activity) => (
-            <option key={activity.id} value={activity.id}>
-              {activity.title}
-            </option>
-          ))}
-        </select>
+          onChange={setActivityId}
+          options={activitySelectOptions}
+          ariaLabel="Filter attendance by activity"
+        />
         <div className="reg-filters" role="group" aria-label="Filter by log status">
           {FILTERS.map((status) => (
             <button

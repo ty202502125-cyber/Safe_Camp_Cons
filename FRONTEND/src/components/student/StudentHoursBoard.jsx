@@ -6,6 +6,7 @@ import {
   PHOTO,
   fmtDate,
 } from "../../shared/appCommon.jsx";
+import BoardSelect from "../common/BoardSelect.jsx";
 
 const FILTERS = ["All", "Verified", "Logged", "Certificate ready"];
 
@@ -18,13 +19,22 @@ export default function StudentHoursBoard({
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("All");
+  const [activityId, setActivityId] = useState("All");
 
   const act = (id) => activities.find((a) => a.id === id);
   const rows = logs
     .filter((e) => act(e.actId))
     .map((e) => ({ enrollment: e, activity: act(e.actId) }));
+  const activityOptions = [
+    ...new Map(rows.map(({ activity: a }) => [a.id, a])).values(),
+  ];
+  const activitySelectOptions = [
+    { value: "All", label: "All activities" },
+    ...activityOptions.map((a) => ({ value: a.id, label: a.title })),
+  ];
 
   const visible = rows.filter(({ enrollment: e, activity: a }) => {
+    if (activityId !== "All" && String(e.actId) !== activityId) return false;
     if (filter === "Verified" && !e.verified) return false;
     if (filter === "Logged" && e.verified) return false;
     if (filter === "Certificate ready" && !done(e)) return false;
@@ -90,6 +100,13 @@ export default function StudentHoursBoard({
             </button>
           )}
         </div>
+        <BoardSelect
+          label="Activity"
+          value={activityId}
+          onChange={setActivityId}
+          options={activitySelectOptions}
+          ariaLabel="Filter hours by activity"
+        />
         <div className="reg-filters" role="group" aria-label="Filter hours">
           {FILTERS.map((status) => (
             <button

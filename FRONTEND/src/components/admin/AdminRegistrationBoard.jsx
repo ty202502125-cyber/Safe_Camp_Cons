@@ -22,6 +22,7 @@ import {
   fmtDate,
   initials,
 } from "../../shared/appCommon.jsx";
+import BoardSelect from "../common/BoardSelect.jsx";
 
 const FILTERS = ["All", "Pending", "Accepted", "Declined"];
 
@@ -45,6 +46,13 @@ export default function AdminRegistrationBoard({
     registrations.filter((e) => e.status === status).length;
   const attendedCount = registrations.filter((e) => e.attended).length;
   const verifiedCount = registrations.filter((e) => e.verified).length;
+  const activitySelectOptions = [
+    { value: "All", label: "All activities" },
+    ...activities.map((activity) => ({
+      value: activity.id,
+      label: activity.title,
+    })),
+  ];
 
   const visible = registrations.filter((e) => {
     if (activityId !== "All" && String(e.actId) !== activityId) return false;
@@ -196,18 +204,13 @@ export default function AdminRegistrationBoard({
             </button>
           )}
         </div>
-        <select
+        <BoardSelect
+          label="Activity"
           value={activityId}
-          onChange={(event) => setActivityId(event.target.value)}
-          aria-label="Filter by activity"
-        >
-          <option value="All">All activities</option>
-          {activities.map((activity) => (
-            <option key={activity.id} value={activity.id}>
-              {activity.title}
-            </option>
-          ))}
-        </select>
+          onChange={setActivityId}
+          options={activitySelectOptions}
+          ariaLabel="Filter registrations by activity"
+        />
         <div className="reg-filters" role="group" aria-label="Filter by status">
           {FILTERS.map((status) => (
             <button

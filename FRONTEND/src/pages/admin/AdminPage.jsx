@@ -5,6 +5,7 @@ import AdminMandatoryBoard from "../../components/admin/AdminMandatoryBoard.jsx"
 import AdminActivitiesBoard from "../../components/admin/AdminActivitiesBoard.jsx";
 import AdminAttendanceBoard from "../../components/admin/AdminAttendanceBoard.jsx";
 import AdminStudentAccountsBoard from "../../components/admin/AdminStudentAccountsBoard.jsx";
+import BoardSelect from "../../components/common/BoardSelect.jsx";
 import {
   CATEGORIES,
   COLLEGES,
@@ -822,18 +823,23 @@ export function AdminPage({ d, start }) {
                 </button>
               )}
             </div>
-            <select value={sf} onChange={(e) => setSf(e.target.value)}>
-              {[
+            <BoardSelect
+              label="Status"
+              value={sf}
+              onChange={setSf}
+              options={[
                 "All",
                 "Pending",
                 "Open",
                 "Ongoing",
                 "Completed",
                 "Rejected",
-              ].map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
+              ].map((s) => ({
+                value: s,
+                label: s === "All" ? "All statuses" : s,
+              }))}
+              ariaLabel="Activity status"
+            />
           </div>
           <AdminActivitiesBoard
             activities={shown}

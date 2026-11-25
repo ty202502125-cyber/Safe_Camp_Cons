@@ -4,6 +4,7 @@ import StudentActivityCard from "../../components/student/StudentActivityCard.js
 import MandatoryActivityCard from "../../components/student/MandatoryActivityCard.jsx";
 import StudentEnrollmentsBoard from "../../components/student/StudentEnrollmentsBoard.jsx";
 import StudentHoursBoard from "../../components/student/StudentHoursBoard.jsx";
+import BoardSelect from "../../components/common/BoardSelect.jsx";
 import {
   CATEGORIES,
   nid,
@@ -317,31 +318,49 @@ export function StudentPage({ d, start }) {
             title="Browse activities"
             sub="Search and filter, then enroll in the services you want to join."
           >
-            <div className="filters">
-              <input
-                aria-label="Search activities"
-                placeholder="Search by title, description or location…"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-              />
-              <select
-                aria-label="Category"
+            <div className="reg-toolbar act-toolbar">
+              <div className="reg-search">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
+                <input
+                  aria-label="Search activities"
+                  placeholder="Search by title, description or location…"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                />
+                {q && (
+                  <button
+                    type="button"
+                    className="reg-search-clear"
+                    aria-label="Clear search"
+                    onClick={() => setQ("")}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              <BoardSelect
+                label="Category"
                 value={cat}
-                onChange={(e) => setCat(e.target.value)}
-              >
-                {["All", ...CATEGORIES].map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
-              </select>
-              <select
-                aria-label="Status"
+                onChange={setCat}
+                options={["All", ...CATEGORIES].map((c) => ({
+                  value: c,
+                  label: c === "All" ? "All categories" : c,
+                }))}
+                ariaLabel="Category"
+              />
+              <BoardSelect
+                label="Status"
                 value={st}
-                onChange={(e) => setSt(e.target.value)}
-              >
-                {["All", "Open", "Ongoing", "Completed"].map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
-              </select>
+                onChange={setSt}
+                options={["All", "Open", "Ongoing", "Completed"].map((c) => ({
+                  value: c,
+                  label: c === "All" ? "All statuses" : c,
+                }))}
+                ariaLabel="Status"
+              />
             </div>
             <div className="acts">
               {list.map((a) => (

@@ -6609,3 +6609,230 @@ small,
     flex-wrap: wrap;
   }
 }
+
+/* Activity dropdowns: clear labels and a calmer native select. */
+.board-select {
+  position: relative;
+  display: flex;
+  flex: 0 1 220px;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 170px;
+}
+
+.board-select > span {
+  padding-left: 2px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.board-select::after {
+  content: "⌄";
+  position: absolute;
+  right: 12px;
+  bottom: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.board-select select {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  padding: 0 32px 0 12px;
+  appearance: none;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--field);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+}
+
+.board-select select:focus {
+  outline: none;
+  border-color: var(--g);
+  box-shadow: 0 0 0 3px var(--glow);
+}
+
+.act-toolbar .board-select {
+  flex-basis: 200px;
+}
+
+@media (max-width: 560px) {
+  .board-select {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+}
+
+/* Search bars: sit on the same line and rhythm as the labelled dropdowns. */
+.reg-toolbar,
+.mandatory-admin-toolbar {
+  align-items: flex-end;
+}
+
+.reg-toolbar > .reg-search,
+.mandatory-admin-toolbar > .reg-search {
+  position: relative;
+  flex: 1 1 260px;
+  height: 38px;
+  min-height: 38px;
+  margin-top: 15px;
+  border-radius: 12px;
+}
+
+.reg-toolbar > .reg-search::before,
+.mandatory-admin-toolbar > .reg-search::before {
+  content: "SEARCH";
+  position: absolute;
+  top: -15px;
+  left: 2px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 15px;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.reg-toolbar > .reg-search input,
+.mandatory-admin-toolbar > .reg-search input {
+  height: 100%;
+}
+
+.reg-toolbar > .reg-search:focus-within,
+.mandatory-admin-toolbar > .reg-search:focus-within {
+  outline: none;
+  border-color: var(--g);
+  box-shadow: 0 0 0 3px var(--glow);
+}
+
+/* Dropdown options: a styled menu that matches the rest of the board UI. */
+.board-select::after {
+  content: none;
+}
+
+.board-select > .board-select-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 15px;
+  text-transform: uppercase;
+}
+
+.board-select-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 38px;
+  min-width: 0;
+  padding: 0 32px 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--field);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.board-select-control:hover,
+.board-select-control:focus-visible,
+.board-select-control.on {
+  outline: none;
+  border-color: var(--g);
+  box-shadow: 0 0 0 3px var(--glow);
+}
+
+.board-select-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-select-arrow {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+  pointer-events: none;
+  transition: transform 0.18s ease;
+}
+
+.board-select-control.on .board-select-arrow {
+  transform: rotate(180deg);
+}
+
+.board-select-menu {
+  position: absolute;
+  z-index: 80;
+  top: 100%;
+  right: 0;
+  left: 0;
+  max-height: 260px;
+  overflow: auto;
+  margin-top: 6px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: 0 16px 36px rgba(68, 12, 26, 0.18);
+}
+
+.board-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+
+.board-select-option:hover,
+.board-select-option:focus-visible {
+  outline: none;
+  background: var(--soft);
+}
+
+.board-select-option.on {
+  background: var(--g);
+  color: #fff;
+}
+
+.board-select-check {
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+@media (max-width: 560px) {
+  .board-select-menu {
+    max-height: 220px;
+  }
+}
